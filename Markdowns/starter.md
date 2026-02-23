@@ -48,8 +48,8 @@ Or use CLI commands directly:
 
 ```sh
 ghcup list              # show available versions of each tool
-ghcup install ghc 9.6.6 # install a specific GHC version
-ghcup set ghc 9.6.6     # set it as the active version
+ghcup install ghc 9.12.2 # install a specific GHC version
+ghcup set ghc 9.12.2     # set it as the active version
 ghcup install cabal     # install latest Cabal
 ghcup install stack     # install Stack
 ghcup install hls       # install Haskell Language Server
@@ -59,13 +59,17 @@ ghcup install hls       # install Haskell Language Server
 
 ## Recommended Versions (2026CS)
 
-This course uses:
+This course uses the following versions (current instructor setup as of February 2026):
 
-| Tool  | Version |
-|-------|---------|
-| GHC   | 9.6.x   |
-| Stack | latest  |
-| HLS   | latest  |
+| Tool  | Version  | Notes                        |
+|-------|----------|------------------------------|
+| GHCup | 0.1.50.2 | latest, recommended          |
+| GHC   | 9.12.2   | active; hls-powered          |
+| Cabal | 3.10.3.0 | active                       |
+| Stack | 3.7.1    | active, recommended          |
+| HLS   | 2.13.0.0 | active, latest, recommended  |
+
+Stack manages its own GHC per project via `stack.yaml`, so the active global GHC version is less critical when using Stack.
 
 ---
 
