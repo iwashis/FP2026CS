@@ -13,26 +13,7 @@
 
 ## Installing GHCup
 
-### macOS / Linux / WSL
-
-Run the bootstrap script:
-
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-```
-
-Follow the prompts. GHCup will ask whether to install GHC, Cabal, Stack, and HLS. You can say yes to all during setup, or manage them individually later.
-
-After installation, reload your shell (or open a new terminal), then verify:
-
-```sh
-ghcup --version
-ghc --version
-```
-
-### Windows
-
-Download and run the GHCup installer from the [official site](https://www.haskell.org/ghcup/). It installs everything including MSYS2.
+Follow the installation instructions for your platform at the [GHCup repository](https://github.com/haskell/ghcup-hs).
 
 ---
 
