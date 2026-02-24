@@ -18,16 +18,13 @@ quicksort (x:xs) = (quicksort less) ++ [x] ++ (quicksort greater)
     less = filter ( < x) xs
     greater = filter ( >= x) xs
 
+-- poor man's selection sort
 selectionsort [] = []
 selectionsort xs = ys ++ (selectionsort zs)
   where
     y = minimum xs
     ys = filter (==y) xs
     zs = filter (/= y) xs
-
--- insertionsort [] = []
--- insertionsort ()
-
 
 -- curried addition function.
 -- add takes x and returns a function that takes y and returns x + y.
@@ -105,11 +102,10 @@ length2 :: [Int] -> Int
 length2 []     = 0
 length2 (x:xs) = if x > 0 then 1 + length2 xs else 1 + length2 xs
 
---
--- product' :: [Int] -> Int
--- product' [] = 1
--- product' (x:xs) = x * product' xs
---
+product' :: [Int] -> Int
+product' [] = 1
+product' (x:xs) = x * product' xs
+
 
 main :: IO ()
 main = do
