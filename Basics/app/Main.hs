@@ -1,6 +1,10 @@
 module Main (main) where
 
 import qualified Lecture01
+import qualified Lecture02
 
 main :: IO ()
-main = Lecture01.main
+main = do
+  Lecture01.main
+  putStrLn ""
+  Lecture02.main
