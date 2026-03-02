@@ -1,3 +1,10 @@
+---
+theme: ./defaulttheme.json
+author: Tomasz Brengos 
+date: MMMM dd, YYYY
+---
+
+
 # Functional Programming
 
 ## Lecture 1
