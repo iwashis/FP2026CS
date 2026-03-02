@@ -410,7 +410,8 @@ sum' (x:xs) = x + sum' xs
 sum' [1..1000000]   -- builds a thunk of depth 1,000,000 → stack overflow!
 ```
 
-Fix: use a strict accumulator — `foldl'` from `Data.List`.
+Fix: use a strict `seq` and a strict accumulator, 
+or simply `foldl'` (we will talk about this function in the future lectures).
 
 ---
 
