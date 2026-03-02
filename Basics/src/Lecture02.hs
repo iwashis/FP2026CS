@@ -1,6 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# OPTIONS_GHC -Wno-missing-export-lists #-}
-module Lecture02 where
+module Lecture02 (main) where
 
 
 -- Haskell has built-in types like Bool:

@@ -1,5 +1,4 @@
-{-# OPTIONS_GHC -Wno-missing-export-lists #-}
-module Lecture01 where
+module Lecture01 (main) where
 
 -- quicksort algorithm.
 -- sorts a list of any orderable type recursively.
