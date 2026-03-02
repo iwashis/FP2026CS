@@ -38,6 +38,3 @@
    Implement two versions of a Fibonacci number generator:
    - The first version uses `seq` to force evaluation in a helper function.
    - The second version uses bang patterns on the arguments of the helper function.
-
-10. **Avoiding Memory Leaks in a Recursive Function**
-    Write a function `strictRecursive :: Int -> Int` that computes a result using recursion, where lazy evaluation could lead to memory leaks. Refactor the function using `seq` or bang patterns to enforce strict evaluation.
