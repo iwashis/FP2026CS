@@ -1,4 +1,5 @@
-module Tutorials01 where
+{-# LANGUAGE BangPatterns #-}
+module Tutorials01 (main) where
 import Data.Function
 -- # List Comprehensions
 --
@@ -10,8 +11,6 @@ import Data.Function
 --    Use list comprehensions to generate the result.
 --
 pythagoreanTriples :: Int -> [(Int, Int, Int)]
--- pythagoreanTriples 0 = []
--- pythagoreanTriples n = undefined  
 pythagoreanTriples n = [(a,b,c) | c <- [1..n], b <- [1..c-1], a <- [1..b-1], a^2 + b^2 == c^2 ]
 
 -- 2. **Pairs of Numbers Whose Sum is Prime**
@@ -21,13 +20,13 @@ pythagoreanTriples n = [(a,b,c) | c <- [1..n], b <- [1..c-1], a <- [1..b-1], a^2
 
 isPrime :: Int -> Bool
 isPrime n 
- | n <= 0 = False
- | n == 1 = False
+ | n <= 1 = False
  | n == 2 = True
- | even n = False
+ | even n = False -- not needed but, makes the function run faster
  | otherwise = all (/= 0) [ n `mod` i | i <- [2..s]] --  n is not div by i
   where 
-    s = n & fromIntegral & sqrt & floor 
+    s = n & fromIntegral & sqrt & floor -- funky way of writing 
+                                        -- s = floor $ sqrt $ fromIntegral n
 
 primeSumPairs :: [Int] -> [(Int, Int)]
 primeSumPairs [] = []
@@ -56,7 +55,8 @@ primeSumPairs (x:xs) = [ (x , y) | y <- xs, isPrime (x+y), x < y ] ++ primeSumPa
 combinations :: Int -> [a] -> [[a]]
 combinations 0 _ = [[]] 
 combinations _ [] = []
-combinations k (x:xs) = [ x:t | t <- combinations (k-1) xs ] ++ k `combinations` xs 
+combinations k (x:xs) = [ x:t | t <- (k-1) `combinations` xs ] ++ k `combinations` xs 
+
 -- # Lazy/Eager Evaluation, `seq`, and Bang Patterns
 --
 -- 6. **Strict Sum Using `seq`**
@@ -68,7 +68,7 @@ lazySum :: [Int] ->Int
 lazySum [] = 0
 lazySum (x:xs) = x + lazySum xs
 
-okishSum list = go list 0
+betterSum list = go list 0
   where 
    go [] n = n 
    go (x:xs) n = go xs (x+n)
@@ -84,7 +84,6 @@ bangSum list = go list 0
    go (x:xs) !n = go xs (x+n)
 
 
-
 -- 7. **Recursive Factorial with Bang Patterns**
 --    Write a recursive function `factorial :: Int -> Int` that computes the factorial of a number. 
 --    Use bang patterns on the accumulator.
@@ -98,3 +97,22 @@ bangSum list = go list 0
 --    Implement two versions of a Fibonacci number generator:
 --    - The first version uses `seq` to force evaluation in a helper function.
 --    - The second version uses bang patterns on the arguments of the helper function.
+
+main :: IO ()
+main = do
+  putStrLn "=== Tutorials 01 ==="
+
+  putStrLn "\n-- Pythagorean triples up to 20 --"
+  print (pythagoreanTriples 20)
+
+  putStrLn "\n-- Prime-sum pairs of [1..10] --"
+  print (primeSumPairs [1..10])
+
+  putStrLn "\n-- 2-combinations of [1,2,3,4] --"
+  print (combinations 2 [1 :: Int, 2, 3, 4])
+
+  putStrLn "\n-- Summation variants on [1..100] --"
+  print (lazySum  [1..100 :: Int])
+  print (betterSum [1..100 :: Int])
+  print (seqSum   [1..100 :: Int])
+  print (bangSum  [1..100 :: Int])

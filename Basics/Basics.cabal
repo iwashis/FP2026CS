@@ -28,6 +28,7 @@ library
       Lecture01
       Lecture02
       Lib
+      Tutorials01
   other-modules:
       Paths_Basics
   autogen-modules:
