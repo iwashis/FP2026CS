@@ -301,10 +301,3 @@ instance Monoid (List a) where
 > mempty <> Head 1 (Head 2 EmptyList)
 1,2,
 ```
-
----
-
-# Literature
-
-* [School of Haskell](https://www.schoolofhaskell.com)
-* [Learn You a Haskell for Great Good!](http://learnyouahaskell.com)

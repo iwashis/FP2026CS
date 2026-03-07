@@ -1,3 +1,11 @@
+---
+theme: ./defaulttheme.json
+author: Tomasz Brengos 
+date: MMMM dd, YYYY
+---
+
+
+
 # Functional Programming
 
 ## Tomasz Brengos
@@ -116,13 +124,26 @@ Consider the following:
 foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an
 foldr (*) seed [a1..an] -> a1*(a2*..(an*seed))..)
 ```
-Their definitions are as follows:
+Now let's look at their definitions.
+
+---
+
+# Folds (classically)
+## foldl
+
+
+
 ```haskell
 foldl :: (b -> a -> b) -> b -> [a] -> b
 foldl f seed []     =  seed
 foldl f seed (x:xs) =  foldl f (f seed x) xs
 ```
-and:
+
+---
+
+# Folds (classically)
+## foldr
+
 ```haskell
 foldr :: (a -> b -> b) -> b -> [a] -> b
 foldr f seed []     = seed
@@ -214,6 +235,11 @@ To better understand `tree`, consider:
          c
 ```
 Let's try to write a version of `foldr` for `Tree a` instead of `[a]`.
+
+---
+
+# Foldables more generally
+
 
 ```haskell
 foldr :: (a -> b -> b) -> b -> Tree a -> b
