@@ -15,15 +15,7 @@
    - You avoid the creation of intermediate thunks when merging subsets.
    - The function works efficiently even for moderately sized lists.
 
-4. **Tail Recursion and Summing a Nested List Structure**
-
-   Define a recursive type for nested lists:
-   ```haskell
-   data NestedList a = Elem a | List [NestedList a]
-   ```
-   Then write a tail-recursive function `sumNested :: Num a => NestedList a -> a` that computes the sum of all elements in the nested list.
-
-5. **Tail Recursion and Tree Traversal**
+4. **Tail Recursion and Tree Traversal**
 
    For a binary tree defined as:
    ```haskell
@@ -31,7 +23,7 @@
    ```
    write a function `preorder :: Tree a -> [a]` that visits the nodes of the tree in the following order: first the current node, then its left subtree, and finally its right subtree, returning the values in that order.
 
-6. **Rose Trees**
+5. **Rose Trees**
 
 A *rose tree* (also called a *multi-way tree* or *ordered tree*) is a generalisation of a binary tree in which each node may have any number of children — zero, one, two, or more — and the order of those children is significant. The name comes from the resemblance of a fully-branched tree to a rose, and was popularised in functional programming by Lambert Meertens.
 
