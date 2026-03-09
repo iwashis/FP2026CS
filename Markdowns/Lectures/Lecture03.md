@@ -2,7 +2,7 @@
 
 ## Basic Folds: foldl and foldr
 
-Let us recall the two fundamental fold functions: `foldl` (left fold) and `foldr` (right fold).
+Let us consider the two fundamental fold functions: `foldl` (left fold) and `foldr` (right fold).
 
 ```haskell
 -- foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an

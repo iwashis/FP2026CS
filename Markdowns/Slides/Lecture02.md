@@ -206,13 +206,14 @@ data State s a  = State { runState :: s -> (a, s) }
 
 ```haskell
 instance (Show a) => Show (List a) where
-    show EmptyList     = ""
-    show (Head a list) = show a ++ "," ++ show list
+    show EmptyList          = ""
+    show (Head a EmptyList) = show a
+    show (Head a list)      = show a ++ "," ++ show list
 ```
 
 ```
 > Head 1 (Head 50 EmptyList)
-1,50,
+1,50
 ```
 
 ---
@@ -257,11 +258,11 @@ area w h = w * h
 
 # Functor
 
-A functor allows applying a function inside a context:
-
 ```haskell
 class Functor f where
     fmap :: (a -> b) -> f a -> f b
+    -- identity:    fmap id      == id
+    -- composition: fmap (f . g) == fmap f . fmap g
 ```
 
 *Instance for our* `List`:
@@ -273,18 +274,28 @@ instance Functor List where
 
 ```
 > fmap (+1) (Head 1 (Head 2 EmptyList))
-2,3,
+2,3
 > fmap show (Head 1 (Head 2 EmptyList))
-"1","2",
+"1","2"
 ```
 
 ---
 
 # Semigroup and Monoid
 
-A **semigroup** has an associative operation `(<>)`.
-A **monoid** also has a neutral element `mempty`.
+```haskell
+class Semigroup a where
+    (<>) :: a -> a -> a      -- associative: (x<>y)<>z == x<>(y<>z)
 
+class Semigroup a => Monoid a where
+    mempty  :: a             -- left/right identity for (<>)
+    mappend :: a -> a -> a
+    mappend = (<>)
+    mconcat :: [a] -> a
+    mconcat = foldr (<>) mempty
+```
+
+*Instances for our* `List`:
 ```haskell
 instance Semigroup (List a) where
     EmptyList   <> ys = ys
@@ -297,7 +308,7 @@ instance Monoid (List a) where
 
 ```
 > Head 1 (Head 2 EmptyList) <> Head 3 (Head 4 EmptyList)
-1,2,3,4,
+1,2,3,4
 > mempty <> Head 1 (Head 2 EmptyList)
-1,2,
+1,2
 ```

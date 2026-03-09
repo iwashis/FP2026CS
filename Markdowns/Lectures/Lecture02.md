@@ -212,13 +212,14 @@ We can write a custom `Show` instance for our `List` type:
 
 ```haskell
 instance (Show a) => Show (List a) where
-    show EmptyList     = ""
-    show (Head a list) = show a ++ "," ++ show list
+    show EmptyList          = ""
+    show (Head a EmptyList) = show a
+    show (Head a list)      = show a ++ "," ++ show list
 ```
 
 ```
 > Head 1 (Head 50 EmptyList)
-1,50,
+1,50
 ```
 
 ### Eq — Comparing Values
@@ -261,43 +262,76 @@ volume2 h w = h * w
 
 ### Functor
 
+A **functor** is a type class for types that can be mapped over. Its formal definition is:
+
+```haskell
+class Functor f where
+    fmap :: (a -> b) -> f a -> f b
+```
+
+The single law a functor must satisfy:
+- **Identity**: `fmap id == id`
+- **Composition**: `fmap (f . g) == fmap f . fmap g`
+
 A functor allows applying a function to a value wrapped in a context:
 
 ```haskell
 instance Functor List where
-    -- fmap :: (a -> b) -> List a -> List b
     fmap _ EmptyList     = EmptyList
     fmap f (Head a list) = Head (f a) (fmap f list)
 ```
 
 ```
 > fmap (+1) (Head 1 (Head 2 EmptyList))
-2,3,
+2,3
 > fmap show (Head 1 (Head 2 EmptyList))
-"1","2",
+"1","2"
 ```
 
 ### Semigroup and Monoid
 
-A semigroup has an associative combining operation; a monoid also has a neutral element:
+A **semigroup** is a type with an associative binary operation. Its formal definition:
+
+```haskell
+class Semigroup a where
+    (<>) :: a -> a -> a
+```
+
+The law it must satisfy:
+- **Associativity**: `(x <> y) <> z == x <> (y <> z)`
+
+A **monoid** extends a semigroup with a neutral element:
+
+```haskell
+class Semigroup a => Monoid a where
+    mempty  :: a
+    mappend :: a -> a -> a
+    mappend = (<>)
+    mconcat :: [a] -> a
+    mconcat = foldr (<>) mempty
+```
+
+Additional laws:
+- **Left identity**: `mempty <> x == x`
+- **Right identity**: `x <> mempty == x`
+
+Instances for our `List` type:
 
 ```haskell
 instance Semigroup (List a) where
-    -- (<>) :: List a -> List a -> List a
     EmptyList   <> ys = ys
     (Head x xs) <> ys = Head x (xs <> ys)
 
 instance Monoid (List a) where
-    -- mempty :: List a
     mempty  = EmptyList
     mappend = (<>)
 ```
 
 ```
 > Head 1 (Head 2 EmptyList) <> Head 3 (Head 4 EmptyList)
-1,2,3,4,
+1,2,3,4
 > mempty <> Head 1 (Head 2 EmptyList)
-1,2,
+1,2
 > Head 1 (Head 2 EmptyList) <> mempty
-1,2,
+1,2
 ```
