@@ -60,7 +60,7 @@ a. **Show instance for RoseTree**
 
 b. **Eq instance for RoseTree**
 
-   Write an `Eq` instance for `RoseTree a` (assuming `Eq a`) that considers two rose trees equal if and only if they have the same root value and the same sequence of children (recursively). Again, do not use `deriving Eq`.
+   Write an `Eq` instance for `RoseTree a` (assuming `Eq a`) 
 
 c. **Functor instance for RoseTree**
 
