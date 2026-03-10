@@ -87,7 +87,22 @@ bangSum list = go list 0
 -- 7. **Recursive Factorial with Bang Patterns**
 --    Write a recursive function `factorial :: Int -> Int` that computes the factorial of a number. 
 --    Use bang patterns on the accumulator.
---
+
+badFactorial :: Int -> Int
+badFactorial 0 = 1
+badFactorial n = n * badFactorial (n-1)
+
+betterFactorial n = go n 1  
+  where 
+    go 0 acc = acc 
+    go n acc = go (n-1) n*acc
+
+factorial n = go n 1
+  where 
+    go 0 acc = acc 
+    go n !acc = go (n-1) n*acc
+
+
 -- 8. **Forcing Evaluation of Tuple Components**
 --    Write a function `forceTuple :: (Int, Int) -> Int` that takes a pair of integers, 
 --    forces evaluation of both components using `seq`, and then returns their sum. 
@@ -116,3 +131,9 @@ main = do
   print (betterSum [1..100 :: Int])
   print (seqSum   [1..100 :: Int])
   print (bangSum  [1..100 :: Int])
+
+  putStrLn "\n-- Factorial calculation --"
+  print (badFactorial 10)
+  print (betterFactorial 10)
+  print (factorial 10)
+
