@@ -27,15 +27,6 @@
 
 A *rose tree* (also called a *multi-way tree* or *ordered tree*) is a generalisation of a binary tree in which each node may have any number of children — zero, one, two, or more — and the order of those children is significant. The name comes from the resemblance of a fully-branched tree to a rose, and was popularised in functional programming by Lambert Meertens.
 
-Where binary trees force exactly two subtrees per node (padding with explicit empty cases), a rose tree lets the list of children grow or shrink naturally at every level, making it a closer match to many real hierarchical structures.
-
-**Where are rose trees used?**
-
-- **File systems.** A directory is a node whose children are either files (leaves) or subdirectories (inner nodes). The number of entries in a directory is not fixed, so a binary tree would be an awkward fit.
-- **Abstract syntax trees (ASTs).** In a programming language, a `while` loop has two children (condition and body), an `if`-expression may have three (condition, then-branch, else-branch), and a function call has one child per argument. A rose tree represents this variable arity directly.
-- **XML and HTML documents.** Each element node has an ordered list of child elements or text nodes. The DOM (Document Object Model) is precisely a rose tree.
-
-A *rose tree* (or multi-way tree) is a tree where each node holds a value and an arbitrary number of children:
 ```haskell
 data RoseTree a = RoseNode a [RoseTree a]
 ```
