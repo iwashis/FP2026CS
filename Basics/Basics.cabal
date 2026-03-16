@@ -30,6 +30,7 @@ library
       Lib
       Tutorials01
       Tutorials02
+      Tutorials03
   other-modules:
       Paths_Basics
   autogen-modules:

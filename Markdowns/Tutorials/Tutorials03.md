@@ -16,27 +16,14 @@
    - *Differentiate*: Symbolically differentiate an expression with respect to a given variable.
    - *Simplify*: Reduce an expression to a simpler form by applying algebraic identities (e.g. eliminating zero terms, collapsing constant subexpressions, combining like terms).
 
-3. **Custom Lazy List with Infinite Support**
-
-   Define your own list type, for example:
-   ```haskell
-   data MyList a = Nil | Cons a (MyList a)
-   ```
-   that supports lazy evaluation. Implement the following functions:
-   - `myMap`: Analogous to `map`.
-   - `myFoldr`: A right fold (`foldr`) that can operate on infinite lists when the combining function is non-strict in its second argument.
-   - `myFilter`: Analogous to `filter`.
-
-   Then define `Semigroup`, `Monoid`, `Functor`, and `Foldable` instances for `MyList`.
-
-4. **Graph Representation and Algorithms**
+3. **Graph Representation and Algorithms**
 
    Define an algebraic data type representing an undirected graph whose vertices can store arbitrary data. Write functions that:
    - *Depth-First Search (DFS)*: Traverse the graph starting from a given vertex, returning the vertices visited in order.
    - *Cycle Detection*: Determine whether the graph contains a cycle.
    - *Path Finding*: Find a path between two vertices, returning `Nothing` if no path exists.
 
-5. **Rose Trees**
+4. **Rose Trees**
 
 A *rose tree* (also called a *multi-way tree* or *ordered tree*) is a generalisation of a binary tree in which each node may have any number of children — zero, one, two, or more — and the order of those children is significant. The name comes from the resemblance of a fully-branched tree to a rose, and was popularised in functional programming by Lambert Meertens.
 
@@ -87,3 +74,35 @@ d. **Foldable instance for RoseTree**
    The traversal order should be *pre-order*: process the root value first, then fold over the children left to right. Once the instance is defined, use it to implement:
    - `roseToList :: RoseTree a -> [a]` — collects all values in pre-order
    - `roseDepth  :: RoseTree a -> Int` — returns the depth of the tree (root has depth 1)
+
+# Foldables
+
+1. **Implementing map and filter using folds**
+
+   Implement the functions `myMap :: (a -> b) -> [a] -> [b]` and `myFilter :: (a -> Bool) -> [a] -> [a]`
+   using both `foldr` and `foldl`. Compare their behaviour and performance in the context of lazy evaluation.
+
+2. **Fold with accumulation control**
+
+   Implement the function `foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c`, which
+   works like `foldl`, but allows aborting the computation at any point, returning the current accumulator
+   wrapped in `Left` or the final result in `Right`. Then use this function to implement:
+   - `findFirstThat :: (a -> Bool) -> [a] -> Maybe a` — finds the first element satisfying a predicate
+   - `takeWhileSum :: (Num a, Ord a) => a -> [a] -> [a]` — returns the longest prefix of a list whose sum does not exceed the given value
+   - `findSequence :: Eq a => [a] -> [a] -> Maybe Int` — finds the index of the first occurrence of a sublist in a list
+
+3. **Reversing folds**
+
+   Implement the function `unfoldl :: (b -> Maybe (b, a)) -> b -> [a]`, which is the inverse of `foldl` —
+   it generates a list from an initial state. Use it to implement:
+   - `countdown :: Int -> [Int]` — generates a countdown from n to 1
+   - `fib :: Int -> [Int]` — generates the first n Fibonacci numbers
+   - `iterate' :: (a -> a) -> a -> [a]` — your own implementation of the standard `iterate` function
+   - `decToBin :: Int -> [Int]` — converts a decimal number to its binary representation (a list of 0s and 1s)
+
+4. **Advanced data transformation**
+
+   Write a function `foldTransform :: (a -> b -> c -> c) -> c -> [a] -> [b] -> c`, which combines
+   two lists by applying a three-argument function with an accumulator. Use it to implement:
+   - `zipFoldl :: (c -> a -> b -> c) -> c -> [a] -> [b] -> c` — similar to `zipWith`, but with accumulation
+   - `matrixMultiply :: Num a => [[a]] -> [[a]] -> [[a]]` — matrix multiplication using folds

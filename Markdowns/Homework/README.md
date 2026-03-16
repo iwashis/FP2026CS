@@ -32,7 +32,6 @@ Your repository must follow the directory structure below. Failure to comply may
     │   └── Main.hs (and other modules)
     ├── README.md   (Documentation and build instructions)
     ├── stack.yaml  (or package.yaml / project-name.cabal)
-    └── .gitignore
 ```
 
 ---

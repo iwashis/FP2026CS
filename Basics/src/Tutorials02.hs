@@ -28,12 +28,12 @@ tailQuickSort :: Ord a => [a] -> [a]
 tailQuickSort list = go [Unsorted list] [] 
   where
    go [] acc = acc 
-   go (Sorted elem : stack) acc = go stack (elem : acc)
+   go (Sorted elem : stack) acc = go stack (acc ++ [elem])
    go (Unsorted [] : stack) acc = go stack acc 
    go (Unsorted (x:xs) : stack) acc = 
     let smaller = filter (< x) xs
         bigger  = filter (>= x) xs
-    in go (Unsorted bigger : Sorted x : Unsorted smaller : stack) acc
+    in go (Unsorted smaller : Sorted x : Unsorted bigger : stack) acc
    
 -- tailQuickSort [3,4,1,5,-1,6]
 -- [Unsorted [3,4,1,5,-1,6]], []
@@ -80,12 +80,8 @@ preorder tree = go [tree] []
 -- --5. **Tail Recursion and Expression Evaluation Using an Explicit Stack**
 --
 --    Consider arithmetic expressions built from integer literals, addition, and multiplication:
---    ```haskell
---    data Expr = Lit Int | Add Expr Expr | Mul Expr Expr
---    ```
---    A naive recursive evaluator is not tail-recursive because it must return to the call site to combine the results of subexpressions.
---
---    Implement a tail-recursive evaluator `evalExpr :: Expr -> Int` by using an explicit stack to simulate the call stack. Your stack should track the pending work left to do after each subexpression is evaluated (for example, which subexpressions still need to be processed and how their results should be combined). The function must not use any non-tail recursive calls.
+--    A naive recursive naiveEvaluator is not tail-recursive because it must return to the call site to combine the results of subexpressions.
+
 main = do
   putStrLn "=== Tutorials 02 ==="
   
