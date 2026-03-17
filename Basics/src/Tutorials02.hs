@@ -82,6 +82,38 @@ preorder tree = go [tree] []
 --    Consider arithmetic expressions built from integer literals, addition, and multiplication:
 --    A naive recursive naiveEvaluator is not tail-recursive because it must return to the call site to combine the results of subexpressions.
 
+data Expr = Val Int | Add Expr Expr | Mul Expr Expr deriving (Show, Eq) 
+exampleExpr = Add (Mul (Val 6) (Val 8)) (Val 5)
+
+naiveEval :: Expr -> Int
+naiveEval (Val n) = n
+naiveEval (Add e1 e2) = naiveEval e1 + naiveEval e2 
+naiveEval (Mul e1 e2) = naiveEval e1 * naiveEval e2 
+
+data StackEntry = Apply (Int -> Int -> Int) Int | ComputeLeft (Int -> Int -> Int) Expr
+
+eval :: Expr -> Int
+eval expr = go [] expr
+  where
+    go [] (Val n) = n
+    go (Apply f m :stack) (Val n) = go stack (Val $ f m n) 
+    go (ComputeLeft f e1 :stack) (Val n) =  go ((Apply f n) :stack) e1 
+    go stack (Add e1 e2) = go (ComputeLeft (+) e1:stack) e2
+    go stack (Mul e1 e2) = go (ComputeLeft (*) e1:stack) e2
+
+-- go [] Mul (Add 4 5) 6
+-- go [CompLeft (*) (Add 4 5)] 6
+-- go [Apply (*) 6] (Add 4 5)
+-- go [CompLeft (+) 4, Apply (*) 6] 5
+-- go [ Apply (*) 6] 9
+-- go [ ] 54
+--
+--
+
+-- go [] Mul (Add 4 5) (Add 1 5)
+-- go [CL * Add 4 5] (Add 1 5) 
+-- go [ CL + 1, CL * Add 4 5] 5
+
 main = do
   putStrLn "=== Tutorials 02 ==="
   
@@ -94,3 +126,4 @@ main = do
   let treeExample = Node 3 (Node 5 (Node (-1) Empty Empty) Empty) (Node 10 Empty Empty)
   print (badPreorder treeExample)
   print (preorder treeExample)
+  print $ eval exampleExpr
