@@ -51,6 +51,7 @@ data RoseTree a = RoseNode a [RoseTree a]
 --
 -- a. **Show instance for RoseTree**
 instance Show a => Show (RoseTree a) where
+  -- show :: Show a => Show (RoseTree a) -> String
   show (RoseNode x list) = show x ++  " " ++ show list
 --    Write a `Show` instance for `RoseTree a` (assuming `Show a`) that displays a rose tree in a readable nested form. For example, the tree above might display as:
 --    ```
@@ -61,6 +62,7 @@ instance Show a => Show (RoseTree a) where
 -- b. **Eq instance for RoseTree**
 
 instance Eq a => Eq (RoseTree a) where
+   -- (==) :: Eq a => RoseTree a -> RoseTree a -> Bool
   (RoseNode x xlist) == (RoseNode y ylist) = x == y &&  xlist == ylist
 --    Write an `Eq` instance for `RoseTree a` (assuming `Eq a`).
 --
@@ -71,12 +73,6 @@ instance Functor RoseTree where
   -- fmap :: (a -> b) -> RoseTree a -> RoseTree b
   fmap f (RoseNode x list) = RoseNode (f x) $ map (fmap f) list 
 
---    The instance should apply the function to every value in the tree while preserving its shape. Verify the two functor laws:
---    - **Identity**: `fmap id t == t`
---    - **Composition**: `fmap (f . g) t == (fmap f . fmap g) t`
---
--- d. **Foldable instance for RoseTree**
---
 --    Write a `Foldable` instance for `RoseTree` by implementing `foldMap`:
 --    ```haskell
 --    instance Foldable RoseTree where

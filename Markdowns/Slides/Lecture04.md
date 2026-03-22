@@ -18,6 +18,26 @@ Lecture04.hs
 
 ---
 
+# Not every parameterised type is a Functor
+
+A `Functor` lets you transform the value *inside* a context. But this only works when the type parameter appears in **output** (covariant) position.
+
+**Counter-example:** a predicate *consumes* an `a`, so it cannot be a `Functor`.
+```haskell
+newtype Predicate a = Predicate (a -> Bool)
+
+-- Attempt:
+fmap :: (a -> b) -> Predicate a -> Predicate b
+fmap f (Predicate p) = Predicate (\b -> ???)
+--   f :: a -> b
+--   p :: a -> Bool
+--   b :: b          -- we need (b -> Bool), but can only go a → b, not b → a!
+```
+
+**Rule of thumb:** if the type parameter appears to the *left* of an arrow (input position), you cannot write a lawful `fmap`. Such types are called *contravariant*.
+
+---
+
 # Applicative Functors
 
 Before we get to monads, it is worth understanding applicative functors, which are an important intermediate link in the type hierarchy.
@@ -39,6 +59,31 @@ pure (.) <*> u <*> v <*> w = u <*> (v <*> w) -- composition
 pure f <*> pure x = pure (f x)               -- homomorphism
 u <*> pure y = pure ($ y) <*> u              -- interchange
 ```
+
+---
+
+# A Functor that is NOT Applicative
+
+Not every `Functor` can be made `Applicative`. You already know `Map k` from this lecture — it is a perfectly good `Functor`:
+```haskell
+instance Functor (Map k) where          -- (simplified)
+    fmap f m = Map.map f m              -- apply f to every value
+```
+
+Can we write `pure`?
+```haskell
+pure :: a -> Map k a
+pure x = ???   -- a Map that maps *every possible key* to x?
+```
+A `Map` is finite, but the key space may be infinite (e.g. `Map Int a`). There is no way to build a map that contains *all* keys. So `pure` cannot be implemented.
+
+What about `(<*>)`?
+```haskell
+(<*>) :: Map k (a -> b) -> Map k a -> Map k b
+```
+We could intersect keys and apply — but without a lawful `pure`, the applicative laws break down.
+
+**Lesson:** `pure` demands the ability to create a context from nothing. A finite `Map` cannot represent "a value everywhere", so it cannot be `Applicative`.
 
 ---
 
@@ -200,6 +245,30 @@ return x >>= f        = f x              -- left identity:  return does nothing 
 m >>= return          = m                -- right identity: return does nothing extra
 (m >>= f) >>= g       = m >>= (\x -> f x >>= g)  -- associativity: grouping doesn't matter
 ```
+
+---
+
+## An Applicative that is NOT a Monad
+
+`ZipList` applies functions to elements *positionally* (by zipping), rather than generating all combinations:
+```haskell
+newtype ZipList a = ZipList [a]
+
+instance Applicative ZipList where
+    pure x                          = ZipList (repeat x)
+    (ZipList fs) <*> (ZipList xs)   = ZipList (zipWith ($) fs xs)
+
+ghci> ZipList [(+1), (*10)] <*> ZipList [3, 4]
+ZipList [4, 40]
+```
+
+Why can't we write a lawful `Monad` instance?
+```haskell
+(>>=) :: ZipList a -> (a -> ZipList b) -> ZipList b
+```
+Bind would apply the function to each element, getting a *separate list* from each — but these inner lists may have *different lengths*. There is no principled way to zip them back together while satisfying the monad laws (associativity breaks).
+
+**Lesson:** `Applicative` combines *independent* effects; `Monad` lets later effects *depend* on earlier results. `ZipList`'s positional structure handles independence but breaks when results determine the shape of what comes next.
 
 ---
 
