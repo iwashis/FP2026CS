@@ -42,7 +42,7 @@ A `Sequence a` represents a sequence of values of type `a`. `Empty` is the empty
    ```haskell
    tailElem :: Eq a => a -> Sequence a -> Bool
    ```
-   that searches for an element in a `Sequence` using tail recursion with an explicit stack (a list of `Sequence a` values) to manage subsequences still to be inspected. The function should not grow the call stack in proportion to the nesting depth — instead, push unvisited subtrees onto the accumulator stack and loop.
+   that searches for an element in a `Sequence` using tail recursion with an explicit stack (a list of `Sequence a` values) to manage subsequences still to be inspected. 
 
 5. **Tail Recursion and Sequence Flatten**
 
@@ -71,9 +71,10 @@ A `Sequence a` represents a sequence of values of type `a`. `Empty` is the empty
 
     Without using explicit recursion, implement the following functions using `foldr` and/or `foldl`:
 
-    (a) `myReverse :: [a] -> [a]` — reverses a list. Use `foldl`. Explain why `foldl` is the natural choice here (and why a naïve `foldr` version would be inefficient).
+    (a) `myReverse :: [a] -> [a]` — reverses a list. Use `foldl`. 
 
-    (b) `myTakeWhile :: (a -> Bool) -> [a] -> [a]` — returns the longest prefix of elements satisfying the predicate (e.g. `myTakeWhile even [2,4,3,6] = [2,4]`). Use `foldr`. Explain why `foldr` can stop early on an infinite list here thanks to lazy evaluation, while a `foldl` version cannot.
+    (b) `myTakeWhile :: (a -> Bool) -> [a] -> [a]` — returns the longest prefix of elements satisfying the predicate 
+    (e.g. `myTakeWhile even [2,4,3,6] = [2,4]`). Use `foldr`. 
 
     (c) `decimal :: [Int] -> Int` — interprets a list of digits as a decimal number, e.g. `decimal [1,2,3] = 123`.
 
