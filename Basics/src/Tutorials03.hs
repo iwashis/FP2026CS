@@ -37,6 +37,25 @@ lookup k (Node (k', v') left right)
 --    - *Differentiate*: Symbolically differentiate an expression with respect to a given variable.
 --    - *Simplify*: Reduce an expression to a simpler form by applying algebraic identities (e.g. eliminating zero terms, collapsing constant subexpressions, combining like terms).
 --
+data Expr = Lit Int | Add Expr Expr | Mul Expr Expr
+  deriving (Show)
+
+data Frame
+  = EvalRight (Int -> Int -> Int) Expr   -- need to eval right branch, then combine
+  | ApplyOp   (Int -> Int -> Int) Int    -- left value in hand; combine with current
+
+type Stack = [Frame]
+
+-- Public entry point
+evalExpr :: Expr -> Int
+evalExpr expr = go expr []
+  where
+    go (Lit n) [] = n
+    go (Lit n) ((ApplyOp op val):stack) = go (Lit $ op val n) stack
+    go (Lit n) ((EvalRight op e):stack) = go e ((ApplyOp op n):stack)
+    go (Add e1 e2) stack = go e1 ((EvalRight (+) e2) : stack) 
+    go (Mul e1 e2) stack = go e1 (EvalRight (*) e2 : stack)
+
 -- 3. **Graph Representation and Algorithms**
 --
 --    Define an algebraic data type representing an undirected graph whose vertices can store arbitrary data. Write functions that:
@@ -74,30 +93,49 @@ instance Functor RoseTree where
   fmap f (RoseNode x list) = RoseNode (f x) $ map (fmap f) list 
 
 --    Write a `Foldable` instance for `RoseTree` by implementing `foldMap`:
---    ```haskell
---    instance Foldable RoseTree where
---        foldMap :: Monoid m => (a -> m) -> RoseTree a -> m
---    ```
+instance Foldable RoseTree where
+  -- foldMap :: Monoid m => (a -> m) -> RoseTree a -> m
+  foldMap f (RoseNode x trees) = (f x) <> mconcat (fmap (foldMap f) trees) 
 --    The traversal order should be *pre-order*: process the root value first, then fold over the children left to right. Once the instance is defined, use it to implement:
 --    - `roseToList :: RoseTree a -> [a]` — collects all values in pre-order
---    - `roseDepth  :: RoseTree a -> Int` — returns the depth of the tree (root has depth 1)
---
+roseToList :: RoseTree a -> [a]
+roseToList tree = foldMap (\x -> [x]) tree
 -- # Foldables
 --
 -- 1. **Implementing map and filter using folds**
 --
 --    Implement the functions `myMap :: (a -> b) -> [a] -> [b]` and `myFilter :: (a -> Bool) -> [a] -> [a]`
 --    using both `foldr` and `foldl`. Compare their behaviour and performance in the context of lazy evaluation.
+
+-- foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an
+-- foldr (*) seed [a1..an] -> a1*(a2*..(an*seed))..)
+
+myMap :: (a->b) -> [a] -> [b]
+myMap f list = foldl (\s x -> s ++ [f x]) [] list
+
+myFilter :: (a -> Bool) -> [a] -> [a]
+myFilter predicate list = foldl (\s x -> if predicate x then s ++ [x] else s ) [] list 
 --
 -- 2. **Fold with accumulation control**
 --
 --    Implement the function `foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c`, which
 --    works like `foldl`, but allows aborting the computation at any point, returning the current accumulator
+foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c
+-- data Either a b = Left a | Right b
+foldlWithControl f seed [] = Left seed  
+foldlWithControl f seed (x:xs) = 
+  case f seed x of
+    Left seed'  -> foldlWithControl f seed' xs 
+    Right cont  -> Right cont 
+
 --    wrapped in `Left` or the final result in `Right`. Then use this function to implement:
 --    - `findFirstThat :: (a -> Bool) -> [a] -> Maybe a` — finds the first element satisfying a predicate
+
+-- Maybe a ~ Either () a
+findFirstThat :: (a -> Bool) -> [a] -> Either () a
+findFirstThat predicate list = foldlWithControl (\_ x -> if predicate x then Right x else Left ()) () list  
 --    - `takeWhileSum :: (Num a, Ord a) => a -> [a] -> [a]` — returns the longest prefix of a list whose sum does not exceed the given value
 --    - `findSequence :: Eq a => [a] -> [a] -> Maybe Int` — finds the index of the first occurrence of a sublist in a list
---
 -- 3. **Reversing folds**
 --
 --    Implement the function `unfoldl :: (b -> Maybe (b, a)) -> b -> [a]`, which is the inverse of `foldl` —
@@ -107,9 +145,14 @@ instance Functor RoseTree where
 --    - `iterate' :: (a -> a) -> a -> [a]` — your own implementation of the standard `iterate` function
 --    - `decToBin :: Int -> [Int]` — converts a decimal number to its binary representation (a list of 0s and 1s)
 main =  do
-  let roseTree = RoseNode 1 [RoseNode 2 [], RoseNode 3 []]
+  let roseTree = RoseNode 1 [RoseNode 2 [RoseNode 5 []], RoseNode 3 []]
   let roseTree2 = RoseNode 1 [RoseNode 3 []]
   print roseTree 
   print $ roseTree == roseTree
   print $ roseTree == roseTree2
   print $ (*2) <$> roseTree
+  let expr = Mul (Add (Lit 2) (Lit 5)) (Add (Lit 6) (Lit 7))
+  print $ evalExpr expr
+  print $ foldMap (\t-> [t]) roseTree
+  print $ sum roseTree
+  print $ myMap (+2) [1,2,3,4]

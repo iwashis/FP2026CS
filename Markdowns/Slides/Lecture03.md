@@ -1,5 +1,5 @@
 ---
-theme: ./defaulttheme.json
+theme: ./lighttheme.json
 author: Tomasz Brengos 
 date: MMMM dd, YYYY
 ---

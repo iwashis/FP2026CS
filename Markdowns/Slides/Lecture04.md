@@ -1,5 +1,5 @@
 ---
-theme: ./defaulttheme.json
+theme: ./lighttheme.json
 author: Tomasz Brengos
 date: MMMM dd, YYYY
 ---
@@ -62,31 +62,6 @@ u <*> pure y = pure ($ y) <*> u              -- interchange
 
 ---
 
-# A Functor that is NOT Applicative
-
-Not every `Functor` can be made `Applicative`. You already know `Map k` from this lecture — it is a perfectly good `Functor`:
-```haskell
-instance Functor (Map k) where          -- (simplified)
-    fmap f m = Map.map f m              -- apply f to every value
-```
-
-Can we write `pure`?
-```haskell
-pure :: a -> Map k a
-pure x = ???   -- a Map that maps *every possible key* to x?
-```
-A `Map` is finite, but the key space may be infinite (e.g. `Map Int a`). There is no way to build a map that contains *all* keys. So `pure` cannot be implemented.
-
-What about `(<*>)`?
-```haskell
-(<*>) :: Map k (a -> b) -> Map k a -> Map k b
-```
-We could intersect keys and apply — but without a lawful `pure`, the applicative laws break down.
-
-**Lesson:** `pure` demands the ability to create a context from nothing. A finite `Map` cannot represent "a value everywhere", so it cannot be `Applicative`.
-
----
-
 # Applicative examples
 
 ## Maybe as Applicative:
@@ -140,6 +115,31 @@ ghci> (,) <$> sizes <*> colors
 [("S","red"),("S","blue"),("M","red"),("M","blue"),("L","red"),("L","blue")]
 ```
 Useful for generating test cases, board game moves, brute-force search, …
+
+---
+
+# A Functor that is NOT Applicative
+
+Not every `Functor` can be made `Applicative`. It is a perfectly good `Functor`:
+```haskell
+instance Functor (Map k) where          -- (simplified)
+    fmap f m = Map.map f m              -- apply f to every value
+```
+
+Can we write `pure`?
+```haskell
+pure :: a -> Map k a
+pure x = ???   -- a Map that maps *every possible key* to x?
+```
+A `Map` is finite, but the key space may be infinite (e.g. `Map Int a`). 
+There is no way to build a map that contains *all* keys. So `pure` cannot be implemented.
+
+What about `(<*>)`?
+```haskell
+(<*>) :: Map k (a -> b) -> Map k a -> Map k b
+```
+We could intersect keys and apply — but without a lawful `pure`, the applicative laws break down.
+
 
 ---
 

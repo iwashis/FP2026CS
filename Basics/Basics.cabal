@@ -27,6 +27,7 @@ library
   exposed-modules:
       Lecture01
       Lecture02
+      Lecture03
       Lib
       Tutorials01
       Tutorials02
