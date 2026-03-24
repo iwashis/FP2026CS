@@ -28,7 +28,7 @@ tailQuickSort :: Ord a => [a] -> [a]
 tailQuickSort list = go [Unsorted list] [] 
   where
    go [] acc = acc 
-   go (Sorted elem : stack) acc = go stack (acc ++ [elem])
+   go (Sorted v: stack) acc = go stack (acc ++ [v])
    go (Unsorted [] : stack) acc = go stack acc 
    go (Unsorted (x:xs) : stack) acc = 
     let smaller = filter (< x) xs
@@ -81,38 +81,24 @@ preorder tree = go [tree] []
 --
 --    Consider arithmetic expressions built from integer literals, addition, and multiplication:
 --    A naive recursive naiveEvaluator is not tail-recursive because it must return to the call site to combine the results of subexpressions.
+data Expr = Lit Int | Add Expr Expr | Mul Expr Expr
+  deriving (Show)
 
-data Expr = Val Int | Add Expr Expr | Mul Expr Expr deriving (Show, Eq) 
-exampleExpr = Add (Mul (Val 6) (Val 8)) (Val 5)
+data Frame
+  = EvalRight (Int -> Int -> Int) Expr   -- need to eval right branch, then combine
+  | ApplyOp   (Int -> Int -> Int) Int    -- left value in hand; combine with current
 
-naiveEval :: Expr -> Int
-naiveEval (Val n) = n
-naiveEval (Add e1 e2) = naiveEval e1 + naiveEval e2 
-naiveEval (Mul e1 e2) = naiveEval e1 * naiveEval e2 
+type Stack = [Frame]
 
-data StackEntry = Apply (Int -> Int -> Int) Int | ComputeLeft (Int -> Int -> Int) Expr
-
-eval :: Expr -> Int
-eval expr = go [] expr
+evalExpr :: Expr -> Int
+evalExpr expr = go expr []
   where
-    go [] (Val n) = n
-    go (Apply f m :stack) (Val n) = go stack (Val $ f m n) 
-    go (ComputeLeft f e1 :stack) (Val n) =  go ((Apply f n) :stack) e1 
-    go stack (Add e1 e2) = go (ComputeLeft (+) e1:stack) e2
-    go stack (Mul e1 e2) = go (ComputeLeft (*) e1:stack) e2
-
--- go [] Mul (Add 4 5) 6
--- go [CompLeft (*) (Add 4 5)] 6
--- go [Apply (*) 6] (Add 4 5)
--- go [CompLeft (+) 4, Apply (*) 6] 5
--- go [ Apply (*) 6] 9
--- go [ ] 54
---
---
-
--- go [] Mul (Add 4 5) (Add 1 5)
--- go [CL * Add 4 5] (Add 1 5) 
--- go [ CL + 1, CL * Add 4 5] 5
+    go :: Expr -> Stack -> Int
+    go (Lit n) [] = n
+    go (Lit n) ((ApplyOp op val):stack) = go (Lit $ op val n) stack
+    go (Lit n) ((EvalRight op e):stack) = go e (ApplyOp op n :stack)
+    go (Add e1 e2) stack = go e1 (EvalRight (+) e2 : stack) 
+    go (Mul e1 e2) stack = go e1 (EvalRight (*) e2 : stack)
 
 main = do
   putStrLn "=== Tutorials 02 ==="
@@ -126,4 +112,5 @@ main = do
   let treeExample = Node 3 (Node 5 (Node (-1) Empty Empty) Empty) (Node 10 Empty Empty)
   print (badPreorder treeExample)
   print (preorder treeExample)
-  print $ eval exampleExpr
+  let expr = Mul (Add (Lit 2) (Lit 5)) (Add (Lit 6) (Lit 7))
+  print $ evalExpr expr
