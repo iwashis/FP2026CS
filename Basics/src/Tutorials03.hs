@@ -53,10 +53,6 @@ data RoseTree a = RoseNode a [RoseTree a]
 instance Show a => Show (RoseTree a) where
   -- show :: Show a => Show (RoseTree a) -> String
   show (RoseNode x list) = show x ++  " " ++ show list
---    Write a `Show` instance for `RoseTree a` (assuming `Show a`) that displays a rose tree in a readable nested form. For example, the tree above might display as:
---    ```
---    1 [2 [], 3 [4 []]]
---    ```
 --    Do not use `deriving Show` — write the instance by hand.
 --
 -- b. **Eq instance for RoseTree**
@@ -65,25 +61,39 @@ instance Eq a => Eq (RoseTree a) where
    -- (==) :: Eq a => RoseTree a -> RoseTree a -> Bool
   (RoseNode x xlist) == (RoseNode y ylist) = x == y &&  xlist == ylist
 --    Write an `Eq` instance for `RoseTree a` (assuming `Eq a`).
---
 -- c. **Functor instance for RoseTree**
---
 --    Write a `Functor` instance for `RoseTree`:
 instance Functor RoseTree where
   -- fmap :: (a -> b) -> RoseTree a -> RoseTree b
   fmap f (RoseNode x list) = RoseNode (f x) $ map (fmap f) list 
-
 --    Write a `Foldable` instance for `RoseTree` by implementing `foldMap`:
+instance Foldable RoseTree where
+  -- foldMap :: (Monoid m) => (a-> m) -> RoseTree a -> m
+  foldMap f (RoseNode x trees) = f x <> mconcat (fmap (foldMap f) trees) 
 
 --    Implement `roseToList :: RoseTree a -> [a]` — collects all values in pre-order
+roseToList :: RoseTree a -> [a]
+roseToList = foldMap (:[])
 
+--    Implement `postRoseToList :: RoseTree a -> [a]` — collects all values in post-order
+newtype InvList a = InvList {toList :: [a]} deriving Show 
 
+instance Semigroup (InvList a) where
+  (InvList list1) <> (InvList list2) = InvList (list2 <> list1)
+instance Monoid (InvList a) where
+  mempty = InvList []
+postRoseToList :: RoseTree a -> [a]
+postRoseToList tree = toList $  foldMap ( \t -> InvList [t] ) tree
 -- # Foldables
 --
 -- 1. **Implementing map and filter using folds**
 --
 --    Implement the functions `myMap :: (a -> b) -> [a] -> [b]` and `myFilter :: (a -> Bool) -> [a] -> [a]`
---    using both `foldr` and `foldl`. Compare their behaviour and performance in the context of lazy evaluation.
+--    using both `foldr` and `foldl`. 
+myMap :: (a -> b) -> [a] -> [b]
+myMap f = foldl (\seed value -> seed ++ [f value] ) []
+myFilter :: (a -> Bool) -> [a] -> [a]
+myFilter predicate list = foldl (\seed x -> if predicate x then seed ++ [x] else seed) [] list 
 
 -- foldl (#) seed [a1..an] -> ((..(seed#a1)#a2#..)#an
 -- foldr (*) seed [a1..an] -> a1*(a2*..(an*seed))..)
@@ -92,10 +102,20 @@ instance Functor RoseTree where
 --
 --    Implement the function `foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c`, which
 --    works like `foldl`, but allows aborting the computation at any point, returning the current accumulator
-
+--
+-- data Either a b = Left a | Right b
+foldlWithControl :: (b -> a -> Either b c) -> b -> [a] -> Either b c
+foldlWithControl _ seed [] = Left seed  
+foldlWithControl f seed (x:xs) = 
+  case f seed x of
+    Left seed' -> foldlWithControl f seed' xs
+    Right control -> Right control 
+  
 --    wrapped in `Left` or the final result in `Right`. Then use this function to implement:
 --    - `findFirstThat :: (a -> Bool) -> [a] -> Maybe a` — finds the first element satisfying a predicate
 
+findFirstThat :: (a -> Bool) -> [a] -> Either () a
+findFirstThat predicate = foldlWithControl (\_ x -> if predicate x then Right x else Left ()) ()
 -- Maybe a ~ Either () a
 --    - `takeWhileSum :: (Num a, Ord a) => a -> [a] -> [a]` — returns the longest prefix of a list whose sum does not exceed the given value
 --    - `findSequence :: Eq a => [a] -> [a] -> Maybe Int` — finds the index of the first occurrence of a sublist in a list
@@ -111,10 +131,14 @@ main :: IO ()
 main =  do
   let roseTree = RoseNode 1 [RoseNode 2 [RoseNode 5 []], RoseNode 3 []]
   let roseTree2 = RoseNode 1 [RoseNode 3 []]
+  let roseTree3 = RoseNode "a" [RoseNode "b" [RoseNode "d" [], RoseNode "e" []], RoseNode "c" [RoseNode "f" [], RoseNode "g" []] ]
   print roseTree 
   print $ roseTree == roseTree
   print $ roseTree == roseTree2
   print $ (*2) <$> roseTree
-  -- print $ foldMap (\t-> [t]) roseTree
+  print $ foldMap (:[]) roseTree3
   -- print $ sum roseTree
-  -- print $ myMap (+2) [1,2,3,4]
+  print $ roseToList roseTree3
+  print $ postRoseToList roseTree3
+  print $ myMap (+2) [1,2,3,4]
+  print $ myFilter even [1,2,3,4]
