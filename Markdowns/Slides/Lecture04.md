@@ -77,7 +77,7 @@ instance Applicative Maybe where
 ```haskell
 -- Combining two Maybe values
 liftA2 :: Applicative f => (a -> b -> c) -> f a -> f b -> f c
-liftA2 f x y = f <$> x <*> y
+liftA2 g x y = g <$> x <*> y
 
 -- Example:
 createUser :: Maybe String -> Maybe Int -> Maybe User
