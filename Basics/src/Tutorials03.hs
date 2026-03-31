@@ -1,6 +1,6 @@
 module Tutorials03 where
 
-import Data.List (intercalate, nub)
+import Data.List (intercalate, nub, isPrefixOf)
 import Prelude hiding (lookup)
 
 -- # ADTs and Typeclasses
@@ -120,64 +120,52 @@ foldlWithControl f seed (x : xs) =
 --    wrapped in `Left` or the final result in `Right`. Then use this function to implement:
 --    - `findFirstThat :: (a -> Bool) -> [a] -> Maybe a` — finds the first element satisfying a predicate
 
-findFirstThat :: (a -> Bool) -> [a] -> Either () a
-findFirstThat predicate =
-    foldlWithControl (\_ x -> if predicate x then Right x else Left ()) ()
+toMaybe :: Either a b -> Maybe b
+toMaybe (Left _) = Nothing
+toMaybe (Right x) = Just x
+
+findFirstThat :: (a -> Bool) -> [a] -> Maybe a
+findFirstThat predicate list = 
+  toMaybe $ foldlWithControl (\_ x -> if predicate x then Right x else Left ()) () list 
 
 -- Maybe a ~ Either () a
 --    - `takeWhileSum :: (Num a, Ord a) => a -> [a] -> [a]` — returns the longest prefix of a list whose sum does not exceed the given value
 --    - `findSequence :: Eq a => [a] -> [a] -> Maybe Int` — finds the index of the first occurrence of a sublist in a list
 
-data Seed a = Seed
-    { sublist :: [a]
-    -- , onGoingMatch :: Bool
-    , currentPos :: Int
-    , index :: Maybe Int
-    }
-    deriving (Show, Eq)
+type State a = ([([a], Int)], Maybe Int)
 
--- assumption is for list == nub list
-findSequence sub list =
-    foldlWithControl f (Seed sub 0 Nothing) $ list
+findSequence :: Eq a => [a] -> [a] -> Maybe Int
+findSequence sub list = go 0 list
   where
-    f :: Eq a => Seed a -> a -> Either (Seed a) Int
-    f (Seed (s:ss) current Nothing) x = 
-      if s == x then Left (Seed ss (current + 1) (Just current)) 
-                else Left (Seed (s:ss) (current + 1) Nothing) 
-    f (Seed (s:ss) current (Just ind)) x = 
-      if s == x then Left (Seed ss (current + 1) (Just ind)) 
-                else Left (Seed (s:ss) (current + 1) Nothing) 
-    f (Seed [] current (Just ind)) x = Right ind 
-    f (Seed [] current Nothing) x = Right (-1) 
+    go _ [] = Nothing
+    go n l@(_:xs) = if isPrefixOf sub l then Just n else go (n+1) xs
+
 -- 3. **Reversing folds**
 --
---    Implement the function `unfoldl :: (b -> Maybe (b, a)) -> b -> [a]`, which is the inverse of `foldl` —
 
 unfoldl :: (b -> Maybe (b, a)) -> b -> [a]
-unfoldl machine state = case machine state of 
-  Just (state', observation) -> observation : unfoldl machine state' 
+unfoldl machine state = case machine state of
   Nothing -> []
+  Just (state', observable) -> observable : unfoldl machine state'
+
 --    it generates a list from an initial state. Use it to implement:
 --    - `countdown :: Int -> [Int]` — generates a countdown from n to 1
+countdown n = unfoldl machine state
+  where
+    machine :: (Int -> Maybe (Int,Int))
+    machine 0 = Nothing  
+    machine m = Just (m-1, m)
+    state :: Int 
+    state = n 
 
-
-type CountdownState = Int
-countdown n = unfoldl machine initState
-  where 
-    initState = n  
-    machine :: CountdownState -> Maybe (CountdownState, Int)
-    machine 0 = Nothing
-    machine m = Just (m-1, m) 
 --    - `fib :: Int -> [Int]` — generates the first n Fibonacci numbers
-
-data FibState = FibState (Int, Int) Int deriving (Show, Eq) 
-fib n = unfoldl machine initState
-  where 
-    initState = FibState (0,1) n  
-    machine :: FibState -> Maybe (FibState, Int)
-    machine (FibState (x, y) 0) = Nothing 
-    machine (FibState (x, y) n) = Just $ (FibState (y, x+y) (n-1), x) 
-
+--
+fib :: Int -> [Int]
+fib n = unfoldl machine state
+  where
+    machine ((_,_), 0) = Nothing  
+    machine ((x,y), m) = Just (((y , x+y ), m-1) , x)
+    state = ((1,1) , n) 
 
 main :: IO ()
 main = do
@@ -194,6 +182,6 @@ main = do
     print $ postRoseToList roseTree3
     print $ myMap (+ 2) [1, 2, 3, 4]
     print $ myFilter even [1, 2, 3, 4]
-    print $ findSequence [3,4] [1,2,3,4]
+    -- print $ findSequence [3,4] [1,2,3,4]
     print $ countdown 6
     print $ fib 10
