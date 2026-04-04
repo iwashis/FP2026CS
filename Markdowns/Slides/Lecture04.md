@@ -202,6 +202,51 @@ ghci> lookupEmail 99  -- Nothing  (unknown user)
 
 ---
 
+# The Maybe Monad — in other languages
+
+The Maybe monad pattern appears in many mainstream languages under different names.
+
+## Rust — `Option<T>` with the `?` operator
+```rust
+fn lookup_email(uid: i32, users: &HashMap<i32, String>,
+                emails: &HashMap<String, String>) -> Option<String> {
+    let name = users.get(&uid)?;       // returns None if missing
+    let email = emails.get(name)?;     // returns None if missing
+    Some(email.clone())
+}
+```
+Rust's `?` operator desugars to early return on `None` — exactly like `>>=` for `Maybe`.
+
+## Java — `Optional<T>` with `flatMap`
+```java
+Optional<String> lookupEmail(int uid) {
+    return users.get(uid)                        // Optional<String>
+        .flatMap(name -> emails.get(name));       // Optional<String>
+}
+```
+`flatMap` on `Optional` **is** `>>=` for `Maybe`: if the value is absent, propagate emptiness; otherwise, feed the value to the next step.
+
+## C++17 — `std::optional` (no built-in chaining)
+```cpp
+std::optional<std::string> lookup_email(int uid) {
+    auto name  = users.find(uid);    // need manual check
+    if (!name) return std::nullopt;
+    auto email = emails.find(*name);
+    if (!email) return std::nullopt;
+    return *email;
+}
+```
+C++23 adds `and_then` — the missing `>>=`:
+```cpp
+auto lookup_email(int uid) {
+    return users.find(uid).and_then([&](auto name) {
+        return emails.find(name);
+    });
+}
+```
+
+---
+
 ## Safe head and tail
 The functions `head` and `tail` in Haskell are partial.
 We can make them safe:
@@ -327,3 +372,25 @@ third :: [a] -> Maybe a
 third xs = do
   ...
 ```
+
+---
+
+# Do notation — the same idea elsewhere
+
+Do notation desugars `x <- action` into `action >>= \x -> …`. Other languages have their own syntax for the same pattern.
+
+## Rust — the `?` operator is do notation for `Option` and `Result`
+```rust
+fn third<T: Clone>(xs: &[T]) -> Option<T> {
+    let rest1 = xs.get(1..)?;         //  tail'
+    let rest2 = rest1.get(1..)?;      //  tail' again
+    rest2.first().cloned()            //  head'
+}
+```
+Each `?` is one `<-` — on `None`, bail out immediately.
+
+## Kotlin / Swift / C# — optional chaining (`?.`)
+```kotlin
+val email: String? = users[uid]?.let { emails[it] }
+```
+The `?.` operator short-circuits on `null`, just like `>>=` short-circuits on `Nothing`.
