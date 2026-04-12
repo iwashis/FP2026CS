@@ -202,6 +202,28 @@ ghci> lookupEmail 99  -- Nothing  (unknown user)
 
 ---
 
+## Safe head and tail
+The functions `head` and `tail` in Haskell are partial.
+We can make them safe:
+```haskell
+head' :: [a] -> Maybe a
+head' []     = Nothing
+head' (x:_)  = Just x
+
+tail' :: [a] -> Maybe [a]
+tail' []     = Nothing
+tail' (_:xs) = Just xs
+```
+
+## Exercise:
+Using `head'` and `tail'`, write a function that returns the 3rd element
+of the input list:
+```haskell
+third :: [a] -> Maybe a
+```
+
+---
+
 # The Maybe Monad — in other languages
 
 The Maybe monad pattern appears in many mainstream languages under different names.
@@ -245,27 +267,6 @@ auto lookup_email(int uid) {
 }
 ```
 
----
-
-## Safe head and tail
-The functions `head` and `tail` in Haskell are partial.
-We can make them safe:
-```haskell
-head' :: [a] -> Maybe a
-head' []     = Nothing
-head' (x:_)  = Just x
-
-tail' :: [a] -> Maybe [a]
-tail' []     = Nothing
-tail' (_:xs) = Just xs
-```
-
-## Exercise:
-Using `head'` and `tail'`, write a function that returns the 3rd element
-of the input list:
-```haskell
-third :: [a] -> Maybe a
-```
 
 ---
 
@@ -290,30 +291,6 @@ return x >>= f        = f x              -- left identity:  return does nothing 
 m >>= return          = m                -- right identity: return does nothing extra
 (m >>= f) >>= g       = m >>= (\x -> f x >>= g)  -- associativity: grouping doesn't matter
 ```
-
----
-
-## An Applicative that is NOT a Monad
-
-`ZipList` applies functions to elements *positionally* (by zipping), rather than generating all combinations:
-```haskell
-newtype ZipList a = ZipList [a]
-
-instance Applicative ZipList where
-    pure x                          = ZipList (repeat x)
-    (ZipList fs) <*> (ZipList xs)   = ZipList (zipWith ($) fs xs)
-
-ghci> ZipList [(+1), (*10)] <*> ZipList [3, 4]
-ZipList [4, 40]
-```
-
-Why can't we write a lawful `Monad` instance?
-```haskell
-(>>=) :: ZipList a -> (a -> ZipList b) -> ZipList b
-```
-Bind would apply the function to each element, getting a *separate list* from each — but these inner lists may have *different lengths*. There is no principled way to zip them back together while satisfying the monad laws (associativity breaks).
-
-**Lesson:** `Applicative` combines *independent* effects; `Monad` lets later effects *depend* on earlier results. `ZipList`'s positional structure handles independence but breaks when results determine the shape of what comes next.
 
 ---
 

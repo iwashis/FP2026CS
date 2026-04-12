@@ -126,3 +126,31 @@
    Each time a rule fires, log a message like `"Add identity: 0 + e -> e"`.
    Apply simplification recursively (bottom-up: simplify subtrees first, then the root).
 
+## Additional (extra assignment)
+
+6. **ZipList — an Applicative that is not a Monad**
+
+   `ZipList` applies functions to elements *positionally* (by zipping), rather than generating all combinations like the standard list `Applicative`:
+   ```haskell
+   newtype ZipList a = ZipList { getZipList :: [a] } deriving (Show)
+   ```
+
+   (a) Implement the `Functor` and `Applicative` instances for `ZipList`:
+   ```haskell
+   instance Functor ZipList where
+     fmap = ???
+
+   instance Applicative ZipList where
+     pure  = ???
+     (<*>) = ???
+   ```
+   The idea behind `ZipList` is that `(<*>)` pairs up elements at matching positions (first with first, second with second, etc.). For `pure`, you need a `ZipList` that acts as a neutral element — it should work with any list regardless of length.
+
+   (b) Verify that your instance satisfies the applicative laws by testing:
+   ```haskell
+   pure id <*> ZipList [1,2,3]                          -- should be ZipList [1,2,3]
+   pure (+) <*> ZipList [1,2,3] <*> ZipList [10,20,30]  -- should be ZipList [11,22,33]
+   ```
+
+   (c) Explain (in a comment) why `ZipList` cannot have a lawful `Monad` instance. Specifically, what goes wrong when you try to define `>>=`? Consider what happens when the function passed to `>>=` returns lists of different lengths.
+
