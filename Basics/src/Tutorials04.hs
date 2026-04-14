@@ -9,11 +9,11 @@ import Data.Tuple (swap)
 --    a. Using `safeTail` and `safeHead` from the lecture, implement `safeIndex :: [a] -> Int -> Maybe a`
 --    that safely returns the element at a given index (0-based), returning `Nothing` if the index is out of bounds.
 
-naiveSafeIndex :: [a] -> Int -> Maybe a
-naiveSafeIndex [] _ = Nothing
-naiveSafeIndex (x:_) 0 = Just x
-naiveSafeIndex (_:xs) n = naiveSafeIndex xs (n-1)
-
+-- naiveSafeIndex :: [a] -> Int -> Maybe a
+-- naiveSafeIndex [] _ = Nothing
+-- naiveSafeIndex (x:_) 0 = Just x
+-- naiveSafeIndex (_:xs) n = naiveSafeIndex xs (n-1)
+--
 head' :: [a] -> Maybe a
 head' []    = Nothing
 head' (x:_) = Just x
@@ -72,7 +72,7 @@ knightPaths n p1 p2 = do
 --    - `logMessage :: String -> Logger ()`
 --    - `runLogger :: Logger a -> (a, [String])` 
 --
-data Logger a = Logger { runLogger :: (a,[String]) } deriving Show
+newtype Logger a = Logger { runLogger :: (a,[String]) } deriving Show
 
 instance Functor Logger where
   -- fmap (a -> b) -> Logger a -> Logger b 
@@ -110,7 +110,7 @@ factorial n = do
 --    using the Writer monad for accumulation. Define the tree type as
 --    `data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)` and use the `tell` function in your solution.
 
-data Writer m a = Writer {runWriter :: (a,m)} deriving (Show, Functor)
+newtype Writer m a = Writer {runWriter :: (a,m)} deriving (Show, Functor)
 
 instance (Monoid m) => Applicative (Writer m) where
   pure x = Writer (x, mempty)  
@@ -119,7 +119,7 @@ instance (Monoid m) => Applicative (Writer m) where
 instance (Monoid m) => Monad (Writer m) where
   Writer (x,logx) >>= f = let (y,logy) = runWriter (f x) in Writer (y,logx <> logy)  
  
-tell :: (Monoid m) => m -> Writer m ()
+tell :: m -> Writer m ()
 tell message = Writer ((), message)
 
 data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)
