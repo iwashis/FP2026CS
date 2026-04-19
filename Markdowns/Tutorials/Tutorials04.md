@@ -38,9 +38,3 @@
    Implement a function `countNodes :: Tree a -> Writer (Sum Int) Int` that counts the nodes in a binary tree
    using the Writer monad for accumulation. Define the tree type as
    `data Tree a = Empty | Leaf a | Node a (Tree a) (Tree a)` and use the `tell` function in your solution.
-
-5. **State Monad for tracking state**
-
-   Define a function `runningSum :: [Int] -> [Int]` that, given a list of integers, returns a list of partial sums.
-   For example, for the list `[1, 2, 3, 4]` the result should be `[1, 3, 6, 10]`. Implement this function
-   using the State monad, making use of `get`, `put`, and `runState` or `evalState`.
