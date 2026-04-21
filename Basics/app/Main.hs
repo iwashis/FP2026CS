@@ -6,6 +6,7 @@ import qualified Tutorials01
 import qualified Tutorials02
 import qualified Tutorials03
 import qualified Tutorials04
+import qualified Tutorials05
 main :: IO ()
 main = do
   Lecture01.main
@@ -19,3 +20,5 @@ main = do
   Tutorials03.main
   putStrLn ""
   Tutorials04.main
+  putStrLn ""
+  Tutorials05.main

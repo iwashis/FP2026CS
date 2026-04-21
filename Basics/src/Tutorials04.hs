@@ -132,19 +132,12 @@ countNodes (Node _ left right) = do
   countNodes left
   countNodes right
   
-
--- 5. **State Monad for tracking state**
---
---    Define a function `runningSum :: [Int] -> [Int]` that, given a list of integers, returns a list of partial sums.
---    For example, for the list `[1, 2, 3, 4]` the result should be `[1, 3, 6, 10]`. Implement this function
---    using the State monad, making use of `get`, `put`, and `runState` or `evalState`.
-
 main :: IO ()
 main = do
   putStrLn "=== Tutorials 04 ==="
   print $ safeIndex 2 [1,2,3]
   print $ knights (2,3)
-  print $ knightPaths 4 (4,4) (4,4)
+  print $ knightPaths 2 (4,4) (4,4)
   print $ factorial 10
   -- print $ Sum 10 <> Sum 11
   print $ countNodes (Node 1 (Leaf 2) (Node 2 (Leaf 4) Empty))
