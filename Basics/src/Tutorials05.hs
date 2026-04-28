@@ -1,8 +1,10 @@
-module Tutorials05 (main) where
+module Tutorials05 (main, calculator, readName, readInt, goodCalculator) where
 
 -- You may need to add `mtl` (and `transformers`) to the package dependencies
 -- in order to use the modules below.
 import Control.Monad.State
+import Control.Monad.Trans.Maybe
+import Data.Char
 -- import Control.Monad.Reader
 -- import Control.Monad.Except
 -- import Control.Monad.Trans.Class (lift)
@@ -87,6 +89,7 @@ countNodes (Node _ left right) = do
  modify (+1)
  countNodes left
  countNodes right
+ 
 -- 4. **Interactive calculation using IO**
 --
 --    Write a program `calculator :: IO ()` that reads two numbers and an operation
@@ -95,11 +98,60 @@ countNodes (Node _ left right) = do
 --    whether they want to continue. Use `getLine`, `readLn`, and `putStrLn` to interact
 --    with the user.
 
--- calculator :: IO ()
--- calculator = undefined
+calculator :: IO ()
+calculator = do 
+  print "Input two integers"
+  x <- readLn :: IO Int 
+  y <- readLn :: IO Int
+  print "Input an operation name: sum, difference"
+  operation <- getLine
+  print $ (translate operation) x y
+  where
+    translate :: String -> (Int -> Int -> Int)
+    translate "sum" = (+)
+    translate "difference" = (-)
+  
 
 
--- 5. **The ReaderT transformer for application configuration**
+type ErrorIO a = MaybeT IO a 
+readName :: ErrorIO String
+readName = do 
+  line <- lift getLine
+  if predicate line then pure line else hoistMaybe Nothing 
+  
+  where 
+    predicate :: String -> Bool
+    predicate (x:_) = isUpper x
+    predicate _ = False
+
+readOp :: ErrorIO (Int -> Int -> Int)
+readOp = do
+  line <- lift getLine
+  case line of 
+    "sum" -> pure (+)
+    "difference" -> pure (-)
+    _ -> hoistMaybe Nothing
+
+
+readInt :: ErrorIO Int
+readInt = do 
+  line <- lift getLine
+  if allDigits line then 
+      do 
+        let int = read line :: Int 
+        pure int
+    else hoistMaybe Nothing
+  where 
+    allDigits :: String -> Bool
+    allDigits line = all isDigit line 
+
+goodCalculator :: ErrorIO ()
+goodCalculator = do
+  x <- readInt
+  y <- readInt
+  op <- readOp
+  lift $ print $ op x y
+ -- 5. **The ReaderT transformer for application configuration**
 --
 --    Define a type `Config` that contains application parameters (e.g. `verbose :: Bool`,
 --    `maxRetries :: Int`). Then implement a function
@@ -116,6 +168,8 @@ countNodes (Node _ left right) = do
 
 -- processItems :: [String] -> ReaderT Config IO [Bool]
 -- processItems items = undefined
+
+
 
 
 -- 6. **Error handling with ExceptT**
