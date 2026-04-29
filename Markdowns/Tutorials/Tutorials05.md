@@ -29,24 +29,23 @@
    (e.g. division by zero) and ask the user whether they want to continue. Use `getLine`, `readLn`,
    and `putStrLn` to interact with the user.
 
-5. **The ReaderT transformer for application configuration**
+5. **A safer calculator with MaybeT**
 
-   Define a type `Config` that contains application parameters (e.g. `verbose :: Bool`, `maxRetries :: Int`).
-   Then implement a function `processItem :: String -> ReaderT Config IO Bool` that processes an item
-   and reports the result. The function should check the value of `verbose` in the configuration and
-   print additional information when it is set to `True`. Finally, write a function
-   `processItems :: [String] -> ReaderT Config IO [Bool]` that processes a list of items and returns
-   a list of results.
+   The `calculator :: IO ()` from task 4 uses `readLn :: IO Int`, which throws a runtime exception
+   whenever the user types something that is not a valid integer (e.g. `"abc"` or an empty line).
+   Rewrite the calculator using the `MaybeT` transformer from `Control.Monad.Trans.Maybe`
+   so that bad input is reported as `Nothing` instead of crashing the program.
 
-6. **Error handling with ExceptT**
+   * Define a helper `readInt :: MaybeT IO Int` that reads a line from standard input and
+     produces `Nothing` when the line is not a valid integer (use `readMaybe` from `Text.Read`,
+     or check the input by hand with `Data.Char.isDigit`).
+   * Define a helper `readOp :: MaybeT IO (Int -> Int -> Int)` that reads an operation name
+     (e.g. `"sum"`, `"difference"`, `"product"`) and returns the corresponding function, or
+     `Nothing` if the name is not recognised.
+   * Implement `goodCalculator :: MaybeT IO ()` that reads two integers and an operation
+     using the helpers above and prints the result.
 
-   Write a function `readFileWithExcept :: FilePath -> ExceptT String IO String` that tries to read
-   the contents of a file and handles potential errors using the ExceptT transformer. Then implement
-   a function `processFiles :: [FilePath] -> ExceptT String IO [String]` that processes a list of files,
-   continuing even if some files cannot be read. Add a helper function
-   `logError :: String -> ExceptT String IO ()` that writes errors to a log file.
-
-7. **Combining StateT and IO**
+6. **Combining StateT and IO**
 
    Implement a simple ATM simulator using the StateT transformer. Define a type `BankState` containing
    the account balance. Write the following functions:
@@ -57,7 +56,7 @@
 
    Each operation should print appropriate messages on the screen and update the account state.
 
-8. **Implementing a stack of transformers**
+7. **Implementing a stack of transformers**
 
    Define a type `AppM a = ReaderT Config (StateT AppState (ExceptT AppError IO)) a`, where:
    * `Config` contains configuration parameters (e.g. `maxAttempts :: Int`)
