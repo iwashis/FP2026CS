@@ -1,6 +1,7 @@
 module Lecture07 where
 
 import Data.Char (isDigit, isAlpha, isSpace)
+import Control.Monad.State
 
 --
 -- ==========================================
@@ -26,7 +27,13 @@ import Data.Char (isDigit, isAlpha, isSpace)
 --   [(v, rest)]                 — unique parse with leftover
 --   [(v1,r1),(v2,r2),...]       — ambiguous grammar
 
-newtype Parser a = Parser { runParser :: String -> [(a, String)] }
+type Parser a = StateT String [] a
+
+runParser :: Parser a -> String -> [(a, String)]
+runParser = runStateT
+
+-- The Functor / Applicative / Monad / Alternative instances come for
+-- free from StateT String [].
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,17 +42,15 @@ newtype Parser a = Parser { runParser :: String -> [(a, String)] }
 
 -- result — succeed without consuming input (this is `return`)
 result :: a -> Parser a
-result v = Parser (\inp -> [(v, inp)])
+result = undefined
 
 -- zero — always fail
 zero :: Parser a
-zero = Parser (\_ -> [])
+zero = undefined
 
 -- item — consume exactly one character (any character)
 item :: Parser Char
-item = Parser $ \inp -> case inp of
-  []     -> []
-  (c:cs) -> [(c, cs)]
+item = undefined
 
 -- ghci> runParser item "abc"        -- [('a',"bc")]
 -- ghci> runParser item ""           -- []
@@ -53,33 +58,14 @@ item = Parser $ \inp -> case inp of
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
--- 3. Functor / Applicative / Monad
+-- 3. Sequencing — >>= comes for free from StateT
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --
--- The Monad is the heart of the library — sequencing one parser
--- after another, threading the leftover string through.
-
-instance Functor Parser where
-  fmap f p = p >>= return . f
-
-instance Applicative Parser where
-  pure  = result
-  pf <*> px = pf >>= \f -> px >>= \x -> return (f x)
-
-instance Monad Parser where
-  return = pure
-  -- (>>=) of StateT String [] written out by hand:
-  p >>= f = Parser $ \inp ->
-    [ (y, out) | (x, mid) <- runParser p inp
-               , (y, out) <- runParser (f x) mid ]
-
 -- Two characters in a row — the second `item` automatically gets the
 -- input left over by the first.
+
 twoChars :: Parser (Char, Char)
-twoChars = do
-  c1 <- item
-  c2 <- item
-  return (c1, c2)
+twoChars = undefined
 -- ghci> runParser twoChars "abc"   -- [(('a','b'),"c")]
 -- ghci> runParser twoChars "a"     -- []
 
@@ -91,7 +77,7 @@ twoChars = do
 -- Non-deterministic choice: try BOTH, return all parses of either.
 infixr 5 +++
 (+++) :: Parser a -> Parser a -> Parser a
-p +++ q = Parser (\inp -> runParser p inp ++ runParser q inp)
+(+++) = undefined
 
 -- Laws (a "monad with zero and plus"):
 --   zero +++ p         ==  p
@@ -103,9 +89,7 @@ p +++ q = Parser (\inp -> runParser p inp ++ runParser q inp)
 -- Deterministic choice: keep only the FIRST successful parse.
 infixr 5 <|>
 (<|>) :: Parser a -> Parser a -> Parser a
-p <|> q = Parser $ \inp -> case runParser (p +++ q) inp of
-  []    -> []
-  (x:_) -> [x]
+(<|>) = undefined
 
 -- For unambiguous grammars <|> is dramatically faster — no exponential
 -- blow-up of alternatives, matches what hand-written recursive-descent does.
@@ -116,26 +100,23 @@ p <|> q = Parser $ \inp -> case runParser (p +++ q) inp of
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 sat :: (Char -> Bool) -> Parser Char
-sat p = do
-  c <- item
-  if p c then return c else zero
+sat = undefined
 
 char :: Char -> Parser Char
-char c = sat (== c)
+char = undefined
 
 digit :: Parser Char
-digit = sat isDigit
+digit = undefined
 
 letter :: Parser Char
-letter = sat isAlpha
+letter = undefined
 
 -- (named with a P suffix to avoid clashing with Data.Char.space)
 spaceP :: Parser Char
-spaceP = sat isSpace
+spaceP = undefined
 
 string :: String -> Parser String
-string []     = return []
-string (c:cs) = do { _ <- char c; _ <- string cs; return (c:cs) }
+string = undefined
 
 -- ghci> runParser (string "let") "let x = 1"   -- [("let"," x = 1")]
 -- ghci> runParser (string "let") "lemon"       -- []
@@ -146,19 +127,14 @@ string (c:cs) = do { _ <- char c; _ <- string cs; return (c:cs) }
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 many :: Parser a -> Parser [a]
-many p = many1 p +++ return []
+many = undefined
 
 many1 :: Parser a -> Parser [a]
-many1 p = do
-  x  <- p
-  xs <- many p
-  return (x:xs)
+many1 = undefined
 
 -- A non-negative integer.
 nat :: Parser Int
-nat = do
-  ds <- many1 digit
-  return (read ds)
+nat = undefined
 
 -- ghci> runParser nat "123abc"
 -- [(123,"abc"),(12,"3abc"),(1,"23abc")]
@@ -168,7 +144,7 @@ nat = do
 -- Exercise: define `int` that also accepts an optional leading '-'.
 -- Hint:  (char '-' >> negate <$> nat) <|> nat
 int :: Parser Int
-int = (char '-' >> fmap negate nat) <|> nat
+int = undefined
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,30 +152,23 @@ int = (char '-' >> fmap negate nat) <|> nat
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 spaces :: Parser ()
-spaces = do { _ <- many spaceP; return () }
+spaces = undefined
 
 token :: Parser a -> Parser a
-token p = do { v <- p; spaces; return v }
+token = undefined
 
 symbol :: String -> Parser String
-symbol cs = token (string cs)
+symbol = undefined
 
 -- A list of items separated by a separator.
 sepby1 :: Parser a -> Parser sep -> Parser [a]
-p `sepby1` sep = do
-  x  <- p
-  xs <- many (do { _ <- sep; p })
-  return (x:xs)
+sepby1 = undefined
 
 sepby :: Parser a -> Parser sep -> Parser [a]
-p `sepby` sep = (p `sepby1` sep) +++ return []
+sepby = undefined
 
 intList :: Parser [Int]
-intList = do
-  _  <- symbol "["
-  xs <- token nat `sepby` symbol ","
-  _  <- symbol "]"
-  return xs
+intList = undefined
 
 -- ghci> runParser intList "[1, 2, 3]xx"
 
@@ -216,14 +185,7 @@ intList = do
 -- parse one term, then a flat sequence of (op term) pairs, folding left.
 
 chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a
-p `chainl1` op = do
-  x <- p
-  rest x
-  where
-    rest x = (do f <- op
-                 y <- p
-                 rest (f x y))
-             +++ return x
+chainl1 = undefined
 
 -- Exercise: define chainr1 for right-associative operators
 -- (think 2 ^ 3 ^ 2 = 2 ^ (3 ^ 2)).
@@ -239,21 +201,16 @@ p `chainl1` op = do
 --   factor ::= nat | '(' expr ')'
 
 expr, term, factor :: Parser Int
-expr   = term   `chainl1` addop
-term   = factor `chainl1` mulop
-factor = token nat
-     +++ do { _ <- symbol "("; n <- expr; _ <- symbol ")"; return n }
+expr   = undefined
+term   = undefined
+factor = undefined
 
 addop, mulop :: Parser (Int -> Int -> Int)
-addop  = (symbol "+" >> return (+))
-     +++ (symbol "-" >> return (-))
-mulop  = (symbol "*" >> return (*))
-     +++ (symbol "/" >> return div)
+addop = undefined
+mulop = undefined
 
 calc :: String -> Int
-calc s = case runParser (do { spaces; n <- expr; return n }) s of
-  ((n, "") : _) -> n
-  _             -> error "parse error"
+calc = undefined
 
 -- ghci> calc "1 + 2 * 3"             -- 7
 -- ghci> calc "(1 + 2) * 3"           -- 9
@@ -300,6 +257,3 @@ calc s = case runParser (do { spaces; n <- expr; return n }) s of
 --     with
 --       data JSON = JNum Double | JStr String | JBool Bool | JNull
 --                 | JArr [JSON] | JObj [(String, JSON)]
---
---  6. Re-implement the whole library on top of `StateT String []` from
---     Control.Monad.State and check that nothing changes for the user.

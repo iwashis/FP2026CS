@@ -192,17 +192,3 @@ example = step >> step >> step
 
 runExample :: (((), Double), Int)
 runExample = runIdentity (runStateT' (runStateT' example 0.0) 0)
-
-
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
--- 6. Where this is heading
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
---
--- Pick the inner monad to taste:
---
---   StateT String Maybe  a   ~~~  parser that may fail
---   StateT String []     a   ~~~  parser with backtracking (next lecture!)
---   StateT World IO      a   ~~~  game loop with state and I/O
---
--- Same combinators (get', put', modify', lift', return, >>=) — different
--- inner monad gives you a different set of extra capabilities.

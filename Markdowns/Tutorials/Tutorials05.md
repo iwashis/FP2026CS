@@ -45,7 +45,32 @@
    * Implement `goodCalculator :: MaybeT IO ()` that reads two integers and an operation
      using the helpers above and prints the result.
 
-6. **Combining StateT and IO**
+6. **StateT — state on top of another monad**
+
+   Recall `State s a ≅ s -> (a, s)`. Wrapping the result in an 
+   arbitrary monad `m` gives the state monad transformer:
+
+   ```haskell
+   newtype StateT s m a = StateT { runStateT :: s -> m (a, s) }
+   ```
+   A value of type `StateT s m a` is a stateful step whose result lives in `m`.
+
+   **(a) The `Monad` instance.** Complete the following definition:
+
+   ```haskell
+   instance Monad m => Monad (StateT s m) where
+     return a          = StateT $ \s -> ???
+     (StateT g) >>= f  = StateT $ \s -> ???
+   ```
+
+   **(b) The `MonadTrans` instance.** Complete the lifting operation:
+
+   ```haskell
+   instance MonadTrans (StateT s) where
+     lift ma = StateT $ \s -> ???   -- use fmap to pair the result of ma with s
+   ```
+
+7. **Combining StateT and IO**
 
    Implement a simple ATM simulator using the StateT transformer. Define a type `BankState` containing
    the account balance. Write the following functions:
@@ -56,7 +81,7 @@
 
    Each operation should print appropriate messages on the screen and update the account state.
 
-7. **Implementing a stack of transformers**
+8. **Implementing a stack of transformers**
 
    Define a type `AppM a = ReaderT Config (StateT AppState (ExceptT AppError IO)) a`, where:
    * `Config` contains configuration parameters (e.g. `maxAttempts :: Int`)
