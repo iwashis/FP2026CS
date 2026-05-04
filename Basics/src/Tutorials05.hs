@@ -1,4 +1,5 @@
-module Tutorials05 (main, calculator, readName, readInt, goodCalculator) where
+{-# LANGUAGE ScopedTypeVariables #-}
+module Tutorials05 where
 
 -- You may need to add `mtl` (and `transformers`) to the package dependencies
 -- in order to use the modules below.
@@ -89,184 +90,125 @@ countNodes (Node _ left right) = do
  modify (+1)
  countNodes left
  countNodes right
- 
+
 -- 4. **Interactive calculation using IO**
 --
---    Write a program `calculator :: IO ()` that reads two numbers and an operation
---    (addition, subtraction, multiplication, division) from the user and prints the
---    result. The program should handle errors (e.g. division by zero) and ask the user
---    whether they want to continue. Use `getLine`, `readLn`, and `putStrLn` to interact
---    with the user.
+--    Write a program `calculator :: IO ()` that reads two numbers and an operation (addition, subtraction,
+--    multiplication, division) from the user and prints the result. The program should handle errors
+--    (e.g. division by zero) and ask the user whether they want to continue. Use `getLine`, `readLn`,
+--    and `putStrLn` to interact with the user.
 
 calculator :: IO ()
-calculator = do 
-  print "Input two integers"
-  x <- readLn :: IO Int 
-  y <- readLn :: IO Int
-  print "Input an operation name: sum, difference"
+calculator = do
+  x :: Int <- readLn
+  putStrLn "Choose operation add/multiply:"
   operation <- getLine
-  print $ (translate operation) x y
-  where
-    translate :: String -> (Int -> Int -> Int)
-    translate "sum" = (+)
-    translate "difference" = (-)
-  
-
-
-type ErrorIO a = MaybeT IO a 
-readName :: ErrorIO String
-readName = do 
-  line <- lift getLine
-  if predicate line then pure line else hoistMaybe Nothing 
-  
+  y :: Int <- readLn 
+  print $ (translateOp operation) x y   
   where 
-    predicate :: String -> Bool
-    predicate (x:_) = isUpper x
-    predicate _ = False
+    translateOp :: String -> (Int -> Int -> Int)
+    translateOp "add" = (+)
+    translateOp "multiply" = (*)
 
-readOp :: ErrorIO (Int -> Int -> Int)
-readOp = do
+-- 5. **A safer calculator with MaybeT**
+--
+--    The `calculator :: IO ()` from task 4 uses `readLn :: IO Int`, which throws a runtime exception
+--    whenever the user types something that is not a valid integer (e.g. `"abc"` or an empty line).
+--    Rewrite the calculator using the `MaybeT` transformer from `Control.Monad.Trans.Maybe`
+--    so that bad input is reported as `Nothing` instead of crashing the program.
+--
+--    * Define a helper `readInt :: MaybeT IO Int` that reads a line from standard input and
+--      produces `Nothing` when the line is not a valid integer (use `readMaybe` from `Text.Read`,
+--      or check the input by hand with `Data.Char.isDigit`).
+--    * Define a helper `readOp :: MaybeT IO (Int -> Int -> Int)` that reads an operation name
+--      (e.g. `"sum"`, `"difference"`, `"product"`) and returns the corresponding function, or
+--      `Nothing` if the name is not recognised.
+--    * Implement `goodCalculator :: MaybeT IO ()` that reads two integers and an operation
+--      using the helpers above and prints the result.
+
+type ErrorIO = MaybeT IO
+
+readInt :: ErrorIO Int
+readInt = do
+  line <- lift getLine
+  if all isDigit line then 
+    pure (read line :: Int)
+    else hoistMaybe Nothing 
+
+readOperation :: ErrorIO (Int -> Int -> Int) 
+readOperation = do 
   line <- lift getLine
   case line of 
-    "sum" -> pure (+)
-    "difference" -> pure (-)
+    "add" -> pure (+) 
+    "multiply" -> pure (*) 
     _ -> hoistMaybe Nothing
 
 
-readInt :: ErrorIO Int
-readInt = do 
-  line <- lift getLine
-  if allDigits line then 
-      do 
-        let int = read line :: Int 
-        pure int
-    else hoistMaybe Nothing
-  where 
-    allDigits :: String -> Bool
-    allDigits line = all isDigit line 
-
-goodCalculator :: ErrorIO ()
-goodCalculator = do
-  x <- readInt
+goodCalculatorErrorIO :: ErrorIO ()
+goodCalculatorErrorIO = do
+  x <- readInt 
+  operation <- readOperation
   y <- readInt
-  op <- readOp
-  lift $ print $ op x y
- -- 5. **The ReaderT transformer for application configuration**
+  lift $ print (operation x y)
+
+goodCalculator :: IO ()
+goodCalculator = do 
+  _ <- runMaybeT goodCalculatorErrorIO
+  pure ()
+
+
+-- 6. **StateT — state on top of another monad**
 --
---    Define a type `Config` that contains application parameters (e.g. `verbose :: Bool`,
---    `maxRetries :: Int`). Then implement a function
---    `processItem :: String -> ReaderT Config IO Bool` that processes an item and reports
---    the result. The function should check the value of `verbose` in the configuration
---    and print additional information when it is set to `True`. Finally, write a function
---    `processItems :: [String] -> ReaderT Config IO [Bool]` that processes a list of
---    items and returns a list of results.
-
--- data Config = Config { verbose :: Bool, maxRetries :: Int }
-
--- processItem :: String -> ReaderT Config IO Bool
--- processItem item = undefined
-
--- processItems :: [String] -> ReaderT Config IO [Bool]
--- processItems items = undefined
-
-
-
-
--- 6. **Error handling with ExceptT**
+--    Recall `State s a ≅ s -> (a, s)`. Wrapping the result in an 
+--    arbitrary monad `m` gives the state monad transformer:
 --
---    Write a function `readFileWithExcept :: FilePath -> ExceptT String IO String` that
---    tries to read the contents of a file and handles potential errors using the ExceptT
---    transformer. Then implement a function
---    `processFiles :: [FilePath] -> ExceptT String IO [String]` that processes a list of
---    files, continuing even if some files cannot be read. Add a helper function
---    `logError :: String -> ExceptT String IO ()` that writes errors to a log file.
-
--- readFileWithExcept :: FilePath -> ExceptT String IO String
--- readFileWithExcept path = undefined
-
--- processFiles :: [FilePath] -> ExceptT String IO [String]
--- processFiles paths = undefined
-
--- logError :: String -> ExceptT String IO ()
--- logError msg = undefined
-
-
+--    ```haskell
+--    newtype StateT s m a = StateT { runStateT :: s -> m (a, s) }
+--    ```
+--    A value of type `StateT s m a` is a stateful step whose result lives in `m`.
+--
+--    **(a) The `Monad` instance.** Complete the following definition:
+--
+--    ```haskell
+--    instance Monad m => Monad (StateT s m) where
+--      return a          = StateT $ \s -> ???
+--      (StateT g) >>= f  = StateT $ \s -> ???
+--    ```
+--
+--    **(b) The `MonadTrans` instance.** Complete the lifting operation:
+--
+--    ```haskell
+--    instance MonadTrans (StateT s) where
+--      lift ma = StateT $ \s -> ???   -- use fmap to pair the result of ma with s
+--    ```
+--
 -- 7. **Combining StateT and IO**
 --
---    Implement a simple ATM simulator using the StateT transformer. Define a type
---    `BankState` containing the account balance. Write the following functions:
---    * `withdraw :: Int -> StateT BankState IO Bool`  — attempts to withdraw a given amount
---    * `deposit  :: Int -> StateT BankState IO ()`    — deposits a given amount
---    * `checkBalance :: StateT BankState IO Int`      — checks the current balance
---    * `atmSession   :: StateT BankState IO ()`       — runs an interactive session
+--    Implement a simple ATM simulator using the StateT transformer. Define a type `BankState` containing
+--    the account balance. Write the following functions:
+--    * `withdraw :: Int -> StateT BankState IO Bool` — attempts to withdraw a given amount
+--    * `deposit :: Int -> StateT BankState IO ()` — deposits a given amount
+--    * `checkBalance :: StateT BankState IO Int` — checks the current balance
+--    * `atmSession :: StateT BankState IO ()` — runs an interactive session with the user
 --
---    Each operation should print appropriate messages on the screen and update the
---    account state.
-
--- data BankState = BankState { balance :: Int }
-
--- withdraw :: Int -> StateT BankState IO Bool
--- withdraw amount = undefined
-
--- deposit :: Int -> StateT BankState IO ()
--- deposit amount = undefined
-
--- checkBalance :: StateT BankState IO Int
--- checkBalance = undefined
-
--- atmSession :: StateT BankState IO ()
--- atmSession = undefined
-
-
+--    Each operation should print appropriate messages on the screen and update the account state.
+--
 -- 8. **Implementing a stack of transformers**
 --
---    Define a type `AppM a = ReaderT Config (StateT AppState (ExceptT AppError IO)) a`,
---    where:
---    * `Config`   contains configuration parameters (e.g. `maxAttempts :: Int`)
---    * `AppState` contains the application state (e.g. `counter :: Int`,
---                 `lastOperation :: String`)
---    * `AppError` represents possible errors (e.g. `NetworkError String`,
---                 `ValidationError String`)
+--    Define a type `AppM a = ReaderT Config (StateT AppState (ExceptT AppError IO)) a`, where:
+--    * `Config` contains configuration parameters (e.g. `maxAttempts :: Int`)
+--    * `AppState` contains the application state (e.g. `counter :: Int`, `lastOperation :: String`)
+--    * `AppError` is a type representing possible errors (e.g. `NetworkError String`, `ValidationError String`)
 --
 --    Then implement the following helper functions:
---    * `getConfig    :: AppM Config`                              — retrieves the configuration
---    * `getState     :: AppM AppState`                            — retrieves the state
---    * `modifyState  :: (AppState -> AppState) -> AppM ()`        — modifies the state
---    * `throwAppError :: AppError -> AppM a`                      — raises an error
---    * `runApp :: Config -> AppState -> AppM a
---              -> IO (Either AppError (a, AppState))`             — runs the computation
+--    * `getConfig :: AppM Config` — retrieves the configuration
+--    * `getState :: AppM AppState` — retrieves the state
+--    * `modifyState :: (AppState -> AppState) -> AppM ()` — modifies the state
+--    * `throwAppError :: AppError -> AppM a` — raises an error
+--    * `runApp :: Config -> AppState -> AppM a -> IO (Either AppError (a, AppState))` — runs the computation
 --
---    Finally, implement an example business function
---    `processTransaction :: Transaction -> AppM Result` that uses the helper functions
---    above.
-
--- data AppConfig  = AppConfig  { maxAttempts :: Int }
--- data AppState   = AppState   { counter :: Int, lastOperation :: String }
--- data AppError   = NetworkError String | ValidationError String
--- data Transaction = Transaction {- fields -}
--- data Result      = Result      {- fields -}
-
--- type AppM a = ReaderT AppConfig (StateT AppState (ExceptT AppError IO)) a
-
--- getConfig :: AppM AppConfig
--- getConfig = undefined
-
--- getState :: AppM AppState
--- getState = undefined
-
--- modifyState :: (AppState -> AppState) -> AppM ()
--- modifyState f = undefined
-
--- throwAppError :: AppError -> AppM a
--- throwAppError e = undefined
-
--- runApp :: AppConfig -> AppState -> AppM a -> IO (Either AppError (a, AppState))
--- runApp cfg st action = undefined
-
--- processTransaction :: Transaction -> AppM Result
--- processTransaction tx = undefined
-
-
+--    Finally, implement an example business function `processTransaction :: Transaction -> AppM Result`
+--    that uses the helper functions above.
 main :: IO ()
 main = do
   putStrLn "=== Tutorials 05 ==="

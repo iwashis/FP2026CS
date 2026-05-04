@@ -42,15 +42,22 @@ runParser = runStateT
 
 -- result — succeed without consuming input (this is `return`)
 result :: a -> Parser a
-result = undefined
+result = pure 
 
 -- zero — always fail
 zero :: Parser a
-zero = undefined
+zero = StateT $ const [] 
 
 -- item — consume exactly one character (any character)
 item :: Parser Char
-item = undefined
+item = do  
+  string <- get
+  case string of 
+    x:xs -> do 
+      put xs
+      pure x
+    [] -> zero 
+  
 
 -- ghci> runParser item "abc"        -- [('a',"bc")]
 -- ghci> runParser item ""           -- []
@@ -65,7 +72,10 @@ item = undefined
 -- input left over by the first.
 
 twoChars :: Parser (Char, Char)
-twoChars = undefined
+twoChars = do 
+  x <- item 
+  y <- item
+  pure (x,y)
 -- ghci> runParser twoChars "abc"   -- [(('a','b'),"c")]
 -- ghci> runParser twoChars "a"     -- []
 
@@ -100,7 +110,9 @@ infixr 5 <|>
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 sat :: (Char -> Bool) -> Parser Char
-sat = undefined
+sat predicate = do 
+  x <- item
+  if predicate x then result x else zero
 
 char :: Char -> Parser Char
 char = undefined

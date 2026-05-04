@@ -77,14 +77,16 @@ instance Monad m => Monad (MaybeT' m) where
   return = pure
   -- (>>=) :: MaybeT' m a -> (a -> MaybeT' m b) -> MaybeT' m b
   MaybeT' mx >>= f = MaybeT' $ do
-    maybeVal <- mx                  -- run the inner m-action
-    case maybeVal of
-      Nothing -> return Nothing     -- short-circuit on failure
-      Just x  -> runMaybeT' (f x)   -- otherwise continue
+    let f' = runMaybeT' . f
+    x <- mx
+    case x of
+      Just a -> f' a 
+      Nothing -> pure Nothing
+
 
 instance MonadTrans' MaybeT' where
   -- lift' :: Monad m => m a -> MaybeT' m a
-  lift' mAction = MaybeT' (fmap Just mAction)
+  lift' mAction = MaybeT' $ fmap Just mAction 
   -- "this action never fails" — wrap each result in Just.
 
 
