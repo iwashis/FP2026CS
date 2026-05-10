@@ -9,7 +9,7 @@ This project implements a small domain-specific language for describing data-pro
 
 ## Key Goals
 1. **Parser Implementation**: Convert textual pipeline definitions into a graph-shaped AST.
-2. **Graph Analyzer & Validator**: Check structural properties (connectivity, acyclicity) and basic type compatibility between connected nodes.
+2. **Graph Validator & Executor**: Check structural properties (connectivity, acyclicity, dangling references), then execute the pipeline by passing data along edges in a topological order. Each node kind is dispatched to a small library of named primitives (sources produce values, transforms consume and produce, sinks consume).
 3. **Test Suite**: Cover the parser, the validator, and a handful of small pipelines.
 4. **Parallel Execution (stretch)**: Schedule independent nodes to run concurrently (e.g. one Haskell thread per ready node), respecting the dependencies in the graph.
 
@@ -68,17 +68,18 @@ sink display from grayscale {
 - Report syntax errors with useful location information.
 - Support comments.
 
-### 2. Graph Analyzer & Validator
+### 2. Graph Validator & Executor
 - Build the dataflow graph from the parsed declarations.
 - Detect cycles and reject them (or, if you intentionally support feedback loops, document the convention).
 - Detect dangling references — edges that name nodes that don't exist.
 - Optionally: check that the data type produced by a node matches what its downstream nodes expect.
+- Execute the pipeline: walk the graph in topological order and dispatch each node kind to a small registry of host functions (sources produce a value from their parameters, transforms map their input to an output, sinks consume their input). Report a useful error for unknown node kinds. The set of available primitives is small and lives outside the AST — adding a new kind is registering a function under a name.
 
 ### 3. Test Suite
 - **Unit tests**: parser correctness; cycle detection; dangling-edge detection.
-- **End-to-end tests**: a few small pipelines that should validate, plus malformed ones that should be rejected with a useful message.
-- **Property-based tests**: generate random graphs and check structural invariants (e.g. acyclic graphs validate; cyclic ones don't).
+- **End-to-end tests**: a few small pipelines that should validate *and run* end-to-end, with the output of each sink compared against a hand-computed value; plus malformed pipelines that should be rejected with a useful message.
+- **Property-based tests**: generate random graphs and check structural invariants (e.g. acyclic graphs validate; cyclic ones don't); for randomly generated linear pipelines built from a fixed primitive library, the executor's output equals the composition of the primitive functions in declaration order.
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

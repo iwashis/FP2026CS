@@ -37,7 +37,7 @@ data Resolved = Resolved
   }
 ```
 
-How you split leftover space when children's sizes don't add up to the parent's size (give the rest to the last child? distribute evenly? error?) is a design decision — pick one and document it.
+How you split leftover space when children's sizes are *smaller* than the parent (give the rest to the last child? distribute evenly?) is a design decision — pick one and document it. **Overflow** (children larger than the parent), on the other hand, is not a free design choice: the engine must clamp the layout so that no child sticks out of its parent. Two standard rules — both acceptable — are (a) clip each child to the parent's remaining space along the layout axis, or (b) scale all children proportionally so their sizes sum to the parent. Whichever you pick, the property test below assumes it.
 
 ## Example Layout
 ```
@@ -64,8 +64,8 @@ window "Main" 800 x 600 {
 ### 3. Test Suite
 - **Unit tests**: parser correctness; per-property behaviour (a single box with `width: 100%` fills the parent; a row with two `50%` children splits exactly at the middle).
 - **End-to-end tests**: small layouts whose box positions you compute by hand.
-- **Property-based tests**: invariants — every child's bounding box lies inside its parent's; the sum of children's sizes along the layout axis does not exceed the parent's size along that axis.
+- **Property-based tests**: invariants — every child's bounding box lies inside its parent's; the sum of children's sizes along the layout axis is at most the parent's size along that axis (these two only hold because of the overflow rule fixed above; if you skip that rule, the invariants will fail on randomly generated layouts).
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

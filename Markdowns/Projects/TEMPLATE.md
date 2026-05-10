@@ -19,7 +19,7 @@ Whatever the topic, every project — chosen or self-proposed — has **three pa
   - data ingestion + a query/reporting layer
 - **Part 3 — Test Suite.** This part is **mandatory and identical for every project**. See *The Test Suite* below.
 
-The project does **not** have to define a small language, and it does **not** have to involve a parser. What it must do is split into three coherent, testable components.
+The project does **not** have to define a small language, and it does **not** have to involve a parser. What it must do is split into three coherent components.
 
 ## Required Structure of the Proposal File
 
@@ -72,30 +72,12 @@ Tests are not an afterthought. Every project's test suite has the same three lay
 - **End-to-end tests** — a handful of complete scenarios run all the way through the system, with the expected outcome computed by hand and compared against the program's output. These are the only tests that catch wiring mistakes between Part 1 and Part 2.
 - **Property-based tests** — invariants checked against randomly generated inputs (round-trips, conservation laws, monotonicity, agreement with a reference implementation). One or two strong properties are worth more than ten weak ones.
 
-A test plan without all three layers is incomplete.
-
-## Notes on the Other Sections
-
-- **Motivation** — one paragraph. Connect the project to the real-world systems or ideas it abstracts (which industrial tools use this pattern? which area of CS does it draw from?) and say why it is worth building a small version. This is *not* about your implementation; it is about why the project deserves to exist.
-- **Project Overview** — one paragraph. Say what the project does and what makes it interesting; do *not* describe the implementation here.
-- **Key Goals** — four bullet points, mirroring the structure above. The fourth is a **stretch goal**: something genuinely interesting that you would do *if* the first three parts work. Pick one you would actually attempt.
-- **Suggested Core Data Types** — sketch the central data structures (use Haskell). Stay generic: prefer one constructor with a parameter over enumerating every special case. Add one line saying the shapes are a starting point and the reader is welcome to adapt them. The other proposals in this folder show the right level of detail.
-- **Example** — short, concrete, and consistent with the data types you sketched. If your example refers to a feature your data types cannot represent, either extend the types or simplify the example — the two must agree.
-- **Implementation Components** — say *what* each part must do, not *how*. "Detect cycles in the dependency graph" is fine; "use Tarjan's algorithm with a pre-order index stack" is too much detail for a proposal.
-
-## What to Avoid
-
-- **Vague core parts.** "Implement an engine that runs the program" is not a goal. Say what the part *does* with its inputs.
-- **Stretch goals dressed up as core.** If your "Key Goal #2" is "implement a JIT compiler", you have either picked too much or mislabelled the stretch goal as core.
-- **Test plans without invariants.** `prop_works x = engine x /= error` is not a property-based test; `prop_parse_roundtrip x = parse (pretty x) == x` is.
-- **Skipping approval.** A polished proposal you wrote without talking to the tutor is still an unapproved proposal — talk first, polish second.
-
 ## Submitting Your Proposal
 
-1. Write the file following the structure above and save it in this directory under a short, descriptive name (e.g. `MyProject.md`).
-2. Send it to the tutor or bring it to office hours and **wait for approval** before starting on the implementation.
+1. Write the file following the structure above.
+2. Send it to the tutor and **wait for approval** before starting on the implementation.
 3. Once it is approved, treat the agreed proposal as the contract for the project: the three parts in *Key Goals* are what you will be assessed on.
 
 ## Submitting the Completed Project
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder. The same applies whether you picked one of the curated proposals or had your own approved.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder. The same applies whether you picked one of the curated proposals or had your own approved.

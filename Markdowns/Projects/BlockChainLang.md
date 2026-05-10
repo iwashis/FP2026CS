@@ -9,9 +9,9 @@ BlockChainLang is a small domain-specific language for describing simple blockch
 
 ## Key Goals
 1. **Parser Implementation**: Convert contract definitions into a structured AST.
-2. **Ledger & Virtual Machine**: Maintain a chain of blocks plus the current contract state, and execute transaction bodies against that state.
+2. **Ledger & Virtual Machine**: Maintain a chain of blocks plus the current contract state, and execute transaction bodies against that state. Each block holds a list of transactions and a reference to its parent; the runtime must enforce the chain invariant (every non-genesis block names its parent and that parent exists).
 3. **Test Suite**: Cover the parser, individual transactions, and a handful of end-to-end scenarios (transfers, double-spend attempts, …).
-4. **Consensus Simulation (stretch)**: Simulate a basic consensus mechanism — Proof-of-Work hashing, a tiny Proof-of-Stake variant, or a fork-resolution rule of your design.
+4. **Hashing & Fork Resolution (stretch)**: Make the parent reference a content hash of the parent block, then add either a Proof-of-Work nonce or a fork-resolution rule (e.g. "longest chain wins") on top. The crypto here is just a hash function — no signatures, no networking.
 
 ## Suggested Core Data Types
 
@@ -42,7 +42,7 @@ data Expr
   | Lit    Value
   | BinOp  Op Expr Expr
   | Index  Expr Expr        -- map[key]
-  | Sender                  -- address that submitted the transaction
+  | Sender                  -- address that submitted the transaction (see below)
   | ...
 
 data Statement
@@ -51,6 +51,8 @@ data Statement
   | If      Expr [Statement] [Statement]
   | ...
 ```
+
+Addresses are simply opaque identifiers. There is no cryptography in the base project — when a test driver submits a transaction, it states which address is the `sender`, and the runtime trusts that label. (The stretch goal is the only place hashes appear.)
 
 ## Example Contract
 ```
@@ -76,10 +78,10 @@ contract SimpleCoin {
 - Support comments.
 
 ### 2. Ledger & Virtual Machine
-- Maintain a chain of blocks; each block is a list of transactions plus a reference to the previous block.
-- Execute a transaction by evaluating its body against the current state; a failed `require` reverts every change the transaction made.
-- Provide a way to submit transactions and to query the current state.
-- Reject transactions that violate basic well-formedness rules (unknown transaction name, wrong number of arguments, type mismatch, …).
+- Maintain a chain of blocks; each block is a list of transactions plus a reference to the previous block. The genesis block is the only one without a parent; every other block's parent reference must point at an existing block.
+- Execute a transaction by evaluating its body against the current state; a failed `require` reverts every change the transaction made (the rest of the block proceeds).
+- Provide a way to submit a block of transactions, and to query the current state.
+- Reject transactions that violate basic well-formedness rules (unknown transaction name, wrong number of arguments, type mismatch, …) and reject blocks whose parent reference is missing or unknown.
 
 ### 3. Test Suite
 - **Unit tests**: parser correctness; individual transactions executed in isolation; that a failing `require` rolls the state back.
@@ -88,4 +90,4 @@ contract SimpleCoin {
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

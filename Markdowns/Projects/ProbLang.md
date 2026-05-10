@@ -9,9 +9,9 @@ This project implements a small domain-specific language for stating probabilist
 
 ## Key Goals
 1. **Parser Implementation**: Convert probabilistic programs into a structured AST.
-2. **Model & Inference Engine**: Build the probabilistic model and run a sampling-based inference procedure (rejection sampling or MCMC are reasonable starting points).
+2. **Model & Inference Engine**: Build the probabilistic model and run a sampling-based inference procedure. Restrict the base goal to **discrete distributions** (Bernoulli, Categorical, Binomial, Poisson, …) and **discrete observations** — a continuous `observe x = 1.7` against a `Normal` has measure zero and forces the engine into importance-weighting territory, which is a different project. Continuous *unobserved* draws are fine; it is the `observe` of a continuous draw that is out of scope.
 3. **Test Suite**: Cover the parser, the samplers, and a handful of small models with known analytic answers.
-4. **Alternative Inference (stretch)**: Add a second inference method (e.g. importance sampling) and compare it with your baseline on the same models.
+4. **Alternative Inference (stretch)**: Add a second inference method (e.g. importance sampling) and compare it with your baseline on the same models. Importance sampling is also the natural way to extend `observe` to continuous distributions, so this is the place to lift the discrete-only restriction if you want to.
 
 ## Suggested Core Data Types
 
@@ -76,8 +76,7 @@ The interpreter then runs inference and reports the empirical posterior of `has_
 
 ### 2. Model & Inference Engine
 - Build a representation of the model from the statement list.
-- Implement at least one sampling procedure (rejection sampling is the simplest correct choice for small discrete models; an MCMC kernel scales further).
-- Handle observations correctly — either by conditioning during sampling or by re-weighting traces.
+- Implement rejection sampling against discrete observations: draw a full execution trace, accept it iff every `observe` matched the drawn value, repeat until you have enough accepted traces. This is correct, easy to implement, and sufficient for the example below; just be aware the acceptance rate falls fast as the number of observations grows.
 - Report the posterior of the requested variables as samples and/or summary statistics.
 
 ### 3. Test Suite
@@ -87,4 +86,4 @@ The interpreter then runs inference and reports the empirical posterior of `has_
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

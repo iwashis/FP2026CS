@@ -72,10 +72,10 @@ loss(X, y, theta)
 - Resolve variable and function definitions in the program's environment.
 
 ### 3. Test Suite
-- **Unit tests**: parser correctness; arithmetic on scalars; vector/matrix shape checks; a handful of named identities (associativity, distributivity on small inputs).
+- **Unit tests**: parser correctness; arithmetic on scalars; vector/matrix shape checks; a handful of fixed cases of associativity (`(A+B)+C = A+(B+C)`) and the distributive law (`A·(B+C) = A·B + A·C`) on small inputs.
 - **End-to-end tests**: a few small programs whose results you can compute by hand.
-- **Property-based tests**: random small expressions checked against an oracle (e.g. compare your matrix product with the obvious nested-loop version on random inputs).
+- **Property-based tests**: real algebraic invariants on random small matrices — transpose is involutive (`(Aᵀ)ᵀ = A`), matrix-multiplication transposes as `(A·B)ᵀ = Bᵀ·Aᵀ`, addition is commutative element-wise (`A+B = B+A`), and the identity matrix is a left/right unit (`I·A = A`, `A·I = A`). Use a tolerance for floating-point comparisons. (Avoid weaker tests like "compare against a nested-loop reference implementation" — that just compares your code against your code.)
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

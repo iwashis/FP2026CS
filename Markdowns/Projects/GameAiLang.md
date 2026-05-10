@@ -54,7 +54,7 @@ behavior Guard {
 - Report syntax errors with useful location information.
 - Support comments.
 
-### 2. AI Engine
+### 2. Engine
 - Walk the tree and tick each node with the current world state.
 - Honour the standard semantics: a sequence fails on the first failing child and succeeds when all succeed; a selector succeeds on the first succeeding child and fails when all fail.
 - Dispatch `Action` and `Condition` leaves to a registry of host functions; report a useful error if a name is unknown.
@@ -67,4 +67,4 @@ behavior Guard {
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

@@ -68,8 +68,8 @@ song "AlgoBeat" tempo 120 {
 ### 3. Test Suite
 - **Unit tests**: parser correctness; that a single `Note Quarter` at 120 BPM lasts 0.5 s; that `Repeat n body` produces `n` concatenated copies.
 - **End-to-end tests**: small scores whose event sequences you can compute by hand, compared against the engine's output.
-- **Property-based tests**: invariants — total duration of the event sequence equals the sum of per-item durations; transposing every pitch by `+k` shifts every event's pitch by exactly `+k`.
+- **Property-based tests**: invariants — for each individual `Part`, the time of the last event plus its duration equals the sum of that part's `Item` durations (parts run in parallel, so summing across parts would be wrong — the *score's* total duration is the maximum over parts, not the sum); transposing every pitch by `+k` shifts every event's pitch by exactly `+k`; doubling the tempo halves every event's start time and duration.
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

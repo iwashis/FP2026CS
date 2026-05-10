@@ -73,8 +73,8 @@ select name from Users where id = 1;
 ### 3. Test Suite
 - **Unit tests**: parser correctness; per-operator behaviour on hand-built tables (project ignores extra columns, filter keeps only matching rows, join produces the expected cartesian-product-with-condition).
 - **End-to-end tests**: a small `Users`/`Orders` schema with a handful of rows and a few queries whose expected results you compute by hand.
-- **Property-based tests**: invariants — `project xs . project ys = project (xs intersect ys)`; selecting on `True` returns the full table; an inner join with an always-`False` condition is empty.
+- **Property-based tests**: invariants — `project xs . project ys = project (xs intersect ys)` (under set semantics; if your engine keeps duplicate rows, restate this as equality of *bags*, not lists, since row order isn't fixed); selecting on `True` returns the full table; an inner join with an always-`False` condition is empty.
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

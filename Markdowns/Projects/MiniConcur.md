@@ -74,16 +74,17 @@ The `.` separates a step from its continuation; `|` is parallel composition; `0`
 - Support comments.
 
 ### 2. Interpreter & Channel Manager
-- Execute processes concurrently — Haskell threads (`forkIO`/`async`) plus `MVar`/`STM` channels are a natural fit, but you may simulate scheduling explicitly if you prefer.
+- Execute processes concurrently. Two implementation routes are both acceptable: Haskell threads (`forkIO`/`async`) plus `MVar`/`STM` channels, or an explicit single-threaded scheduler that maintains a queue of runnable processes and steps one at a time. The explicit scheduler is more code but makes the next bullet far easier — pick the route you prefer, but commit to one.
 - Implement send/receive as a synchronous rendezvous (or document and test whatever semantics you choose).
 - Resolve `Call` against the program's process definitions.
+- **Detect deadlock.** "Deadlock" here has a precise meaning: every live process is blocked on a send or receive, no two of them are paired on the same channel, and no process can take a step. When the runtime reaches such a state, it must report it explicitly — never just hang. The explicit-scheduler route makes this a one-line check ("the runnable queue is empty but there are blocked processes"); the threaded route needs more care (e.g. a watchdog or GHC's deadlock detection on `MVar`).
 - Provide some way to inspect what happened during a run (a log of communications is enough for testing).
 
 ### 3. Test Suite
 - **Unit tests**: parser correctness; expression evaluation; that a single send/receive on the same channel actually delivers the value.
-- **End-to-end tests**: producer/consumer; a small ring of processes; a program that should obviously deadlock so that you can check the system reports it (or hangs deterministically).
-- **Property-based tests**: invariants of the channel manager — e.g. every value received was previously sent.
+- **End-to-end tests**: producer/consumer; a small ring of processes; a program that deadlocks (e.g. two processes each waiting on a channel only the other will write to) — the system must report deadlock, *not* hang.
+- **Property-based tests**: invariants of the channel manager — e.g. every value received was previously sent; the multiset of received values is a sub-multiset of the multiset of sent values.
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

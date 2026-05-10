@@ -7,6 +7,8 @@ Every high-level language you have used — Haskell, Python, Java, JavaScript, G
 ## Project Overview
 MiniGC is a minimal programming language designed to demonstrate different garbage collection strategies. The language includes only essential features needed to create interesting memory allocation patterns while providing a framework to implement and compare various garbage collection techniques.
 
+> **Scope note.** This is one of the heavier projects in the folder: three nontrivial subsystems (parser, interpreter with a *manually managed* heap, garbage collector) sit on top of a small language. In particular, you cannot lean on Haskell's GC for the objects under test — you must simulate the heap yourself (an `IntMap Object` plus an explicit "next address" counter is the usual move) and thread that heap through the interpreter (`StateT` is fine, `IORef` is fine). Plan the language surface to be as small as you can get away with.
+
 ## Key Goals
 1. **Parser Implementation**: Convert MiniGC programs into an AST.
 2. **Interpreter & Memory Manager**: Execute programs against a simulated heap and a basic garbage collector.
@@ -93,4 +95,4 @@ This example demonstrates:
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.

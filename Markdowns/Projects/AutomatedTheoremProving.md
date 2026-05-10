@@ -38,19 +38,24 @@ data Statement
   | ...
 ```
 
-How you represent a `Proof` (a tree of justified steps, a list of (formula, justification) pairs, a tactic-like script, …) is part of the design — pick a representation that fits the inference rules you plan to support.
+A `Proof` is a list of justified steps (or a tree of them, or a tactic script) — pick a representation that fits the inference rules you plan to support. Whatever shape you choose, two ingredients are non-negotiable:
+
+- A **context** that tracks the hypotheses currently in scope and the formulas already established in the current proof.
+- A **substitution** mechanism. An axiom or rule like `contrapositive : (P -> Q) -> (~Q -> ~P)` is a *schema*: `P` and `Q` stand for any propositions, and applying the axiom means instantiating those schema variables. Without substitution your engine can only check proofs that re-state the axiom verbatim, which is not interesting.
 
 ## Example Proof Script
 ```
-axiom contrapositive: (P -> Q) -> (~Q -> ~P);
-
-theorem simple: (P -> Q) -> (~Q -> ~P)
+theorem and_comm: (A /\ B) -> (B /\ A)
 proof
-  apply contrapositive;
+  intro    h    : A /\ B;          -- assume the antecedent
+  have     ha   : A           by and_elim_left  h;
+  have     hb   : B           by and_elim_right h;
+  have     goal : B /\ A      by and_intro hb ha;
+  exact    goal;
 qed
 ```
 
-The concrete syntax is up to you — Unicode (`→`, `¬`) or ASCII (`->`, `~`) are both fine, as long as the parser is consistent.
+This proof exercises three things the engine has to get right: discharging the introduced hypothesis `h` when the theorem closes, looking up named facts (`h`, `ha`, `hb`) in the current context, and instantiating the conjunction rules at the right propositions. The concrete syntax is up to you — Unicode (`→`, `∧`, `¬`) or ASCII (`->`, `/\`, `~`) are both fine, as long as the parser is consistent.
 
 ## Implementation Components
 
@@ -61,15 +66,16 @@ The concrete syntax is up to you — Unicode (`→`, `¬`) or ASCII (`->`, `~`) 
 
 ### 2. Proof Evaluator & Rule Engine
 - Maintain a proof context (axioms in scope, hypotheses introduced so far, the current goal).
+- Implement substitution of formulas for schema variables, so that an axiom or rule stated once can be applied at any instance.
 - Implement a small set of inference rules (your choice — e.g. modus ponens, conjunction intro/elim, implication intro, proof by contradiction).
 - Reject proof steps that are not justified by the rules and the available facts.
 - Produce a clear error message pointing to the offending step.
 
 ### 3. Test Suite
 - **Unit tests**: parser round-trips, individual inference-rule applications, rejection of malformed proofs.
-- **End-to-end tests**: a handful of small theorems whose proofs the engine should accept, plus negative cases that should be rejected.
-- **Property-based tests**: generate random well-formed formulas and check structural invariants of the parser/printer (e.g. `parse . pretty == id` modulo whitespace).
+- **End-to-end tests**: a handful of small theorems whose proofs the engine should accept (e.g. `A -> A`, `(A /\ B) -> (B /\ A)`, modus-ponens-style chains), plus negative cases that should be rejected (steps with the wrong instantiation, references to facts not in scope).
+- **Property-based tests**: a real soundness check — write a small truth-table evaluator for `Formula`, then for every theorem the engine accepts, randomly assign truth values to its propositional variables and verify that the proved formula evaluates to `True` under every assignment. (Anything your engine accepts must be a tautology.) This is the property test that actually pins down the prover; a `parse . pretty == id` round-trip is fine to have alongside but is not a substitute.
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `Project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.
