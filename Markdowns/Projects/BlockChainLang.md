@@ -11,7 +11,6 @@ BlockChainLang is a small domain-specific language for describing simple blockch
 1. **Parser Implementation**: Convert contract definitions into a structured AST.
 2. **Ledger & Virtual Machine**: Maintain a chain of blocks plus the current contract state, and execute transaction bodies against that state. Each block holds a list of transactions and a reference to its parent; the runtime must enforce the chain invariant (every non-genesis block names its parent and that parent exists).
 3. **Test Suite**: Cover the parser, individual transactions, and a handful of end-to-end scenarios (transfers, double-spend attempts, …).
-4. **Hashing & Fork Resolution (stretch)**: Make the parent reference a content hash of the parent block, then add either a Proof-of-Work nonce or a fork-resolution rule (e.g. "longest chain wins") on top. The crypto here is just a hash function — no signatures, no networking.
 
 ## Suggested Core Data Types
 
