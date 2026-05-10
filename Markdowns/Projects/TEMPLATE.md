@@ -80,4 +80,4 @@ Tests are not an afterthought. Every project's test suite has the same three lay
 
 ## Submitting the Completed Project
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder. The same applies whether you picked one of the curated proposals or had your own approved.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `homeworks/` folder. The same applies whether you picked one of the curated proposals or had your own approved.

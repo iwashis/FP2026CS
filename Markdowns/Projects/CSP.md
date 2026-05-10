@@ -80,4 +80,4 @@ solve;
 
 ## Submission
 
-Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `Homework/` folder.
+Commit the completed project to your personal course repository — the same repo you use for homework — in a `project/` folder next to the existing `homeworks/` folder.

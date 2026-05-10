@@ -147,32 +147,31 @@ newtype State' s a = State' { runState' :: s -> (a, s) }
 -- Exercise: fill in the Functor instance.
 --
 instance Functor (State' s) where
-  -- f : a -> b, State' g : State' s a
-  fmap f (State' g) = State' (\s -> let (x,s') = g s in (f x, s'))  -- g :  s -> (a,s), the value is of type State' s b
---   -- Hint: run g on the state, apply f to the result, pass state along
+  -- fmap :: (a -> b) -> State' s a -> State' s b
+  fmap f (State' g) = State' $ \s ->
+    let (x, s') = g s
+    in  (f x, s')
 
 -- (Applicative is needed for Monad; we provide it here.)
 --
 instance Applicative (State' s) where
+  -- pure :: a -> State' s a
   pure x = State' (x,)
   -- liftA2 :: (a -> b -> c) -> State' s a -> State' s b -> State' s c
-  liftA2 f (State' g) (State' h) = State'
-    (\state1 ->
-      let (x, state2) = g state1
-          (y, state3) = h state2
-          z  = f x y
-      in  (z, state3))
+  liftA2 f (State' g) (State' h) = State' $ \s ->
+    let (x, s')  = g s
+        (y, s'') = h s'
+    in  (f x y, s'')
+
 -- Exercise: fill in the Monad instance.
 --
 instance Monad (State' s) where
   return = pure
---   -- Hint: run g, feed the result to f, thread the state through
-  (State' g) >>= f = State'
-    (\state1 ->
-      let
-        (x, state2) = g state1
-        (State' h)  = f x
-      in h state2 )
+  -- (>>=) :: State' s a -> (a -> State' s b) -> State' s b
+  (State' g) >>= f = State' $ \s ->
+    let (x, s')  = g s
+        State' h = f x
+    in  h s'
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
