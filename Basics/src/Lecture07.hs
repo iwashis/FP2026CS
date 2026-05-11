@@ -25,7 +25,7 @@ import Control.Monad.State
 --   []                          — failure
 --   [(v, "")]                   — unique complete parse
 --   [(v, rest)]                 — unique parse with leftover
---   [(v1,r1),(v2,r2),...]       — ambiguous grammar
+--   [(v1, r1), (v2, r2), ...]   — ambiguous grammar
 
 type Parser a = StateT String [] a
 
@@ -42,22 +42,21 @@ runParser = runStateT
 
 -- result — succeed without consuming input (this is `return`)
 result :: a -> Parser a
-result = pure 
+result = pure
 
 -- zero — always fail
 zero :: Parser a
-zero = StateT $ const [] 
+zero = StateT $ const []
 
 -- item — consume exactly one character (any character)
 item :: Parser Char
-item = do  
-  string <- get
-  case string of 
-    x:xs -> do 
-      put xs
-      pure x
-    [] -> zero 
-  
+item = do
+  s <- get
+  case s of
+    c:cs -> do
+      put cs
+      pure c
+    [] -> zero
 
 -- ghci> runParser item "abc"        -- [('a',"bc")]
 -- ghci> runParser item ""           -- []
@@ -72,10 +71,10 @@ item = do
 -- input left over by the first.
 
 twoChars :: Parser (Char, Char)
-twoChars = do 
-  x <- item 
+twoChars = do
+  x <- item
   y <- item
-  pure (x,y)
+  pure (x, y)
 -- ghci> runParser twoChars "abc"   -- [(('a','b'),"c")]
 -- ghci> runParser twoChars "a"     -- []
 
@@ -87,7 +86,7 @@ twoChars = do
 -- Non-deterministic choice: try BOTH, return all parses of either.
 infixr 5 +++
 (+++) :: Parser a -> Parser a -> Parser a
-(+++) = undefined
+p1 +++ p2 = StateT $ \s -> runStateT p1 s ++ runStateT p2 s
 
 -- Laws (a "monad with zero and plus"):
 --   zero +++ p         ==  p
@@ -99,7 +98,10 @@ infixr 5 +++
 -- Deterministic choice: keep only the FIRST successful parse.
 infixr 5 <|>
 (<|>) :: Parser a -> Parser a -> Parser a
-(<|>) = undefined
+p1 <|> p2 = StateT $ \s ->
+  case runStateT p1 s of
+    []     -> runStateT p2 s
+    parses -> parses
 
 -- For unambiguous grammars <|> is dramatically faster — no exponential
 -- blow-up of alternatives, matches what hand-written recursive-descent does.
@@ -110,25 +112,29 @@ infixr 5 <|>
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 sat :: (Char -> Bool) -> Parser Char
-sat predicate = do 
-  x <- item
-  if predicate x then result x else zero
+sat predicate = do
+  c <- item
+  if predicate c then result c else zero
 
 char :: Char -> Parser Char
-char = undefined
+char c = sat (== c)
 
 digit :: Parser Char
-digit = undefined
+digit = sat isDigit
 
 letter :: Parser Char
-letter = undefined
+letter = sat isAlpha
 
 -- (named with a P suffix to avoid clashing with Data.Char.space)
 spaceP :: Parser Char
-spaceP = undefined
+spaceP = sat isSpace
 
 string :: String -> Parser String
-string = undefined
+string []     = result []
+string (x:xs) = do
+  y  <- char x
+  ys <- string xs
+  return (y : ys)
 
 -- ghci> runParser (string "let") "let x = 1"   -- [("let"," x = 1")]
 -- ghci> runParser (string "let") "lemon"       -- []
@@ -139,32 +145,55 @@ string = undefined
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 many :: Parser a -> Parser [a]
-many = undefined
+many p = many1 p +++ return []
 
 many1 :: Parser a -> Parser [a]
-many1 = undefined
+many1 p = do
+  x  <- p
+  xs <- many p
+  return (x : xs)
 
 -- A non-negative integer.
 nat :: Parser Int
-nat = undefined
-
+nat = do
+  ds <- many1 digit
+  return (read ds)
 -- ghci> runParser nat "123abc"
 -- [(123,"abc"),(12,"3abc"),(1,"23abc")]
 -- The list monad gives every prefix; replace +++ with <|> in many
 -- to keep only the longest match.
 
 -- Exercise: define `int` that also accepts an optional leading '-'.
--- Hint:  (char '-' >> negate <$> nat) <|> nat
 int :: Parser Int
-int = undefined
-
+int = neg <|> nat
+  where
+    neg = do
+      _ <- char '-'
+      spaces
+      n <- nat
+      return (- n)
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- 7. Whitespace, tokens, separators
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 spaces :: Parser ()
-spaces = undefined
+spaces = do
+  _ <- many spaceP
+  return ()
+
+example :: Parser Int
+example = do
+  spaces
+  x <- int
+  spaces
+  _ <- char '+'
+  spaces
+  y <- int
+  spaces
+  _ <- char ';'
+  return (x + y)
+
 
 token :: Parser a -> Parser a
 token = undefined
