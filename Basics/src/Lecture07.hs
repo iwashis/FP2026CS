@@ -196,20 +196,29 @@ example = do
 
 
 token :: Parser a -> Parser a
-token = undefined
+token p = do { v <- p; spaces; return v }
 
 symbol :: String -> Parser String
-symbol = undefined
+symbol cs = token (string cs)
 
 -- A list of items separated by a separator.
 sepby1 :: Parser a -> Parser sep -> Parser [a]
-sepby1 = undefined
+sepby1 parser separator = do 
+  v <- parser
+  vs <- many ( do {  _ <-separator; parser} )
+  return (v:vs)
+  
+  
 
 sepby :: Parser a -> Parser sep -> Parser [a]
-sepby = undefined
+sepby p seperator = sepby1 p seperator +++ return [] 
 
 intList :: Parser [Int]
-intList = undefined
+intList = do
+  _ <- symbol "["
+  list <- sepby int (symbol ",") 
+  _ <- symbol "]"
+  return list
 
 -- ghci> runParser intList "[1, 2, 3]xx"
 
@@ -224,9 +233,15 @@ intList = undefined
 -- The "obvious" grammar  expr ::= expr "+" term | term  is left-recursive
 -- and loops in recursive-descent. chainl1 is the textbook fix:
 -- parse one term, then a flat sequence of (op term) pairs, folding left.
-
 chainl1 :: Parser a -> Parser (a -> a -> a) -> Parser a
-chainl1 = undefined
+p `chainl1` op = do
+   x <- p
+   rest x
+   where
+     rest x = (do f <- op
+                  y <- p
+                  rest (f x y))
+              +++ return x
 
 -- Exercise: define chainr1 for right-associative operators
 -- (think 2 ^ 3 ^ 2 = 2 ^ (3 ^ 2)).
@@ -242,17 +257,22 @@ chainl1 = undefined
 --   factor ::= nat | '(' expr ')'
 
 expr, term, factor :: Parser Int
-expr   = undefined
-term   = undefined
-factor = undefined
 
-addop, mulop :: Parser (Int -> Int -> Int)
-addop = undefined
-mulop = undefined
+expr   = term   `chainl1` addop
+term   = factor `chainl1` mulop
+factor = token nat
+    +++ do { _ <- symbol "("; n <- expr; _ <- symbol ")"; return n }
+
+addop  = (symbol "+" >> return (+))
+    +++ (symbol "-" >> return (-))
+
+mulop  = (symbol "*" >> return (*))
+    +++ (symbol "/" >> return div)
 
 calc :: String -> Int
-calc = undefined
-
+calc s = case runParser (do { spaces; n <- expr; return n }) s of
+ ((n, "") : _) -> n
+ _             -> error "parse error"
 -- ghci> calc "1 + 2 * 3"             -- 7
 -- ghci> calc "(1 + 2) * 3"           -- 9
 -- ghci> calc "100 - 10 - 1"          -- 89   (left-associative!)
