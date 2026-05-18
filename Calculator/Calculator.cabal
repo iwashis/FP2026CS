@@ -1,0 +1,67 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           Calculator
+version:        0.1.0.0
+description:    Algebraic calculator built with a hand-written Hutton/Meijer-style monadic parser (Lecture07).
+author:         FP-mini 2026CS
+maintainer:     example@example.com
+copyright:      2026
+license:        BSD-3-Clause
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+library
+  exposed-modules:
+      Calculator
+  other-modules:
+      Paths_Calculator
+  autogen-modules:
+      Paths_Calculator
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , mtl >=2.3.1
+    , transformers >=0.6.1.0
+  default-language: Haskell2010
+
+executable Calculator-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_Calculator
+  autogen-modules:
+      Paths_Calculator
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Calculator
+    , base >=4.7 && <5
+    , mtl >=2.3.1
+    , transformers >=0.6.1.0
+  default-language: Haskell2010
+
+test-suite Calculator-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_Calculator
+  autogen-modules:
+      Paths_Calculator
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Calculator
+    , QuickCheck
+    , base >=4.7 && <5
+    , mtl >=2.3.1
+    , transformers >=0.6.1.0
+  default-language: Haskell2010
