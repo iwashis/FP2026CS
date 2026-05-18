@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+
 module Tutorials05 where
 
 -- You may need to add `mtl` (and `transformers`) to the package dependencies
@@ -19,8 +20,8 @@ import Data.Char (isDigit)
 type RunningSum a = State ([Int], Int) a
 
 runningSumHelper :: [Int] -> RunningSum [Int]
-runningSumHelper []     = gets fst
-runningSumHelper (x:xs) = do
+runningSumHelper [] = gets fst
+runningSumHelper (x : xs) = do
   (acc, total) <- get
   let total' = total + x
   put (acc ++ [total'], total')
@@ -28,7 +29,6 @@ runningSumHelper (x:xs) = do
 
 runningSum :: [Int] -> [Int]
 runningSum xs = evalState (runningSumHelper xs) ([], 0)
-
 
 -- 2. **A pseudo-random number generation using State monad**
 --
@@ -55,12 +55,11 @@ randomInt lo hi = do
   return $ lo + seed' `mod` (hi - lo)
 
 randomList :: Int -> Int -> Int -> Random [Int]
-randomList 0 _  _  = return []
+randomList 0 _ _ = return []
 randomList n lo hi = do
-  x  <- randomInt lo hi
+  x <- randomInt lo hi
   xs <- randomList (n - 1) lo hi
   return (x : xs)
-
 
 -- 3. **Binary tree and labelling with State**
 --
@@ -71,10 +70,10 @@ randomList n lo hi = do
 --    `countNodes :: Tree a -> State (Sum Int) (Tree a)` that counts the nodes in the
 --    tree, using the State monad for accumulation.
 
-data Tree a = Empty | Node a (Tree a) (Tree a) deriving Show
+data Tree a = Empty | Node a (Tree a) (Tree a) deriving (Show)
 
 labelTree :: Tree a -> State Int (Tree (a, Int))
-labelTree Empty          = return Empty
+labelTree Empty = return Empty
 labelTree (Node x l r) = do
   label <- get
   put (label + 1)
@@ -83,12 +82,11 @@ labelTree (Node x l r) = do
   return $ Node (x, label) l' r'
 
 countNodes :: Tree a -> State Int Int
-countNodes Empty          = get
+countNodes Empty = get
 countNodes (Node _ l r) = do
   modify (+ 1)
   _ <- countNodes l
   countNodes r
-
 
 -- 4. **Interactive calculation using IO**
 --
@@ -106,10 +104,9 @@ calculator = do
   print $ translateOp op x y
   where
     translateOp :: String -> (Int -> Int -> Int)
-    translateOp "add"      = (+)
+    translateOp "add" = (+)
     translateOp "multiply" = (*)
-    translateOp _          = error "unknown operation"
-
+    translateOp _ = error "unknown operation"
 
 -- 5. **A safer calculator with MaybeT**
 --
@@ -140,15 +137,15 @@ readOperation :: ErrorIO (Int -> Int -> Int)
 readOperation = do
   line <- lift getLine
   case line of
-    "add"      -> pure (+)
+    "add" -> pure (+)
     "multiply" -> pure (*)
-    _          -> hoistMaybe Nothing
+    _ -> hoistMaybe Nothing
 
 goodCalculatorErrorIO :: ErrorIO ()
 goodCalculatorErrorIO = do
-  x  <- readInt
+  x <- readInt
   op <- readOperation
-  y  <- readInt
+  y <- readInt
   lift $ print (op x y)
 
 goodCalculator :: IO ()
@@ -156,50 +153,48 @@ goodCalculator = do
   _ <- runMaybeT goodCalculatorErrorIO
   pure ()
 
-
 -- 6. **StateT — state on top of another monad**
 --
 --    Recall `State s a ≅ s -> (a, s)`. Wrapping the result in an
 --    arbitrary monad `m` gives the state monad transformer:
 
-newtype StateT' s m a = StateT' { runStateT' :: s -> m (a, s) }
+newtype StateT' s m a = StateT' {runStateT' :: s -> m (a, s)}
 
 --    A value of type `StateT s m a` is a stateful step whose result lives in `m`.
 --
---    **(a) The `Functor`/`Applicative`/`Monad` instances.**
+--    **(a) The `Functor`/`Applicative`, `Monad` instances.**
 
-instance Functor m => Functor (StateT' s m) where
-  -- fmap :: (a -> b) -> StateT' s m a -> StateT' s m b
-  fmap f (StateT' pf) =
-    StateT' $ fmap (\(x, s) -> (f x, s)) . pf
+instance (Functor m) => Functor (StateT' s m) where
+  -- fmap :: (a-> b) -> (StateT' s m a) -> StateT' s m b
+  fmap f (StateT' g) = StateT' $ fmap fxid . g
+    where
+      fxid (x, s) = (f x, s)
 
-instance Monad m => Applicative (StateT' s m) where
+instance (Monad m) => Applicative (StateT' s m) where
   -- pure :: a -> StateT' s m a
-  pure x = StateT' $ \s -> pure (x, s)
-  -- (<*>) :: StateT' s m (a -> b) -> StateT' s m a -> StateT' s m b
-  --
-  -- We need `Monad m` (not just `Applicative m`): the new state `s'`
-  -- produced by the first action lives *inside* `m`, and only `>>=`
-  -- can pull it out to feed the second action.
-  StateT' mf <*> StateT' ma = StateT' $ \s ->
-    mf s  >>= \(f, s')  ->
-    ma s' >>= \(x, s'') ->
-    pure (f x, s'')
+  pure x = StateT' $ \state -> pure (x, state)
 
-instance Monad m => Monad (StateT' s m) where
+  -- liftA2 :: (a-> b -> c) -> (StateT' s m a) -> (StateT' s m b) -> (StateT' s m c)
+  liftA2 f (StateT' g) (StateT' h) = StateT' $ \state -> do
+    (x, state') <- g state
+    (y, state'') <- h state'
+    return (f x y, state'')
+
+instance (Monad m) => Monad (StateT' s m) where
   return = pure
-  StateT' g >>= f = StateT' $ \s -> do
-    (x, s') <- g s
-    runStateT' (f x) s'
+
+  -- >>= :: (StateT' s m a) -> (a -> StateT' s m b) -> StateT' s m b
+  (StateT' g) >>= f = StateT' $ \state -> do
+    (x, state') <- g state
+    (runStateT' . f) x state'
 
 --    **(b) The `MonadTrans` instance.**
 
-instance MonadTrans (StateT' s) where
+instance (MonadTrans (StateT' s)) where
   -- lift :: m a -> StateT' s m a
-  lift ma = StateT' $ \s -> do
+  lift ma = StateT' $ \state -> do
     x <- ma
-    pure (x, s)
-
+    return (x, state)
 
 -- 7. **Combining StateT and IO**
 --
@@ -212,44 +207,43 @@ instance MonadTrans (StateT' s) where
 --
 --    Each operation should print appropriate messages on the screen and update the account state.
 
-newtype BankState = BankState { portfolio :: Int } deriving (Show, Eq, Ord)
+newtype BankState = BankState {balance :: Int} deriving (Show, Eq, Ord)
 
-withdraw :: Int -> StateT BankState IO Bool
-withdraw amount = do
-  BankState current <- get
-  let new = current - amount
-  if new >= 0
+type ATM = StateT BankState IO
+
+withdraw :: Int -> ATM Bool
+withdraw value = do
+  bankstate <- get
+  if balance bankstate >= value
     then do
-      put (BankState new)
-      lift $ putStrLn "Withdrawal complete"
+      let newbankstate = BankState $ balance bankstate - value
+      put newbankstate
       return True
     else do
-      lift $ putStrLn "Error: insufficient funds"
+      lift $ print "Withdrawal not possible"
       return False
 
-deposit :: Int -> StateT BankState IO ()
-deposit amount = do
-  BankState current <- get
-  put (BankState (current + amount))
-  lift $ putStrLn $ "Deposit of " ++ show amount ++ " done."
+checkBalance :: ATM Int
+checkBalance = do
+  bankstate <- get
+  lift $ putStrLn $ "The current balance is " ++ show (balance bankstate)
+  return $ balance bankstate
 
-atmSession :: StateT BankState IO ()
+atmSession :: ATM ()
 atmSession = do
-  lift $ putStrLn "(d) Deposit, (w) Withdraw"
-  c <- lift getChar
-  case c of
+  lift $ putStrLn "Press d for Deposit, c for Check balance"
+  char <- lift getChar
+  case char of
     'd' -> do
-      lift $ putStrLn "Enter amount to deposit"
-      amount <- lift (readLn :: IO Int)
-      deposit amount
+      value <- lift (readLn :: IO Int)
+      withdraw value
       atmSession
-    'w' -> do
-      lift $ putStrLn "Enter amount to withdraw"
-      amount <- lift (readLn :: IO Int)
-      _ <- withdraw amount
+    'c' -> do
+      checkBalance
       atmSession
-    _   -> atmSession
-
+    _ -> do
+      lift $ putStrLn "Unsupported functionality"
+      atmSession
 
 -- 8. **Implementing a stack of transformers**
 --
@@ -276,6 +270,7 @@ main = do
   print $ evalState (randomList 5 1 100) 2
   print $ evalState (labelTree exampleTree) 0
   print $ evalState (countNodes exampleTree) 0
-  -- calculator
   where
+    -- calculator
+
     exampleTree = Node 'a' (Node 'b' Empty Empty) (Node 'c' Empty Empty)
