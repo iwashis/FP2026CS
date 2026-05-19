@@ -192,9 +192,9 @@ instance (Monad m) => Monad (StateT' s m) where
 
 instance (MonadTrans (StateT' s)) where
   -- lift :: m a -> StateT' s m a
-  lift ma = StateT' $ \state -> do
+  lift ma = StateT' $ \st -> do
     x <- ma
-    return (x, state)
+    return (x, st)
 
 -- 7. **Combining StateT and IO**
 --
@@ -236,10 +236,10 @@ atmSession = do
   case char of
     'd' -> do
       value <- lift (readLn :: IO Int)
-      withdraw value
+      _ <- withdraw value
       atmSession
     'c' -> do
-      checkBalance
+      _ <- checkBalance
       atmSession
     _ -> do
       lift $ putStrLn "Unsupported functionality"
@@ -271,6 +271,5 @@ main = do
   print $ evalState (labelTree exampleTree) 0
   print $ evalState (countNodes exampleTree) 0
   where
-    -- calculator
 
     exampleTree = Node 'a' (Node 'b' Empty Empty) (Node 'c' Empty Empty)

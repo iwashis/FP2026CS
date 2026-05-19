@@ -18,6 +18,8 @@ module Main (main) where
 --
 
 import Calculator (Expr (..), calc, eval, parseExpr, pretty)
+import Data.List (sort, nub)
+import System.Environment (getArgs)
 import Test.QuickCheck
 
 
@@ -86,11 +88,59 @@ prop_calc_matches_pipeline = undefined
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--  Shrinking demo on [Int]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- Lists already have a perfectly good `Arbitrary` / `shrink` instance
+-- in QuickCheck, so they make an ideal stage on which to *watch*
+-- shrinking work. All three properties below are deliberately FALSE.
+-- When you run them you should see QuickCheck:
+--
+--   1. find a random counterexample of some non-trivial size,
+--   2. then shrink it down to the smallest list (and smallest element
+--      values) that still falsifies the property.
+--
+-- Expected minimal counterexamples (your run may pick the symmetric
+-- variant, e.g. [1,0] vs [0,1] — both are length-2 minima):
+--
+--   prop_reverse_id        -> [0, 1]
+--   prop_already_sorted    -> [1, 0]
+--   prop_no_duplicates     -> [0, 0]
+
+-- FALSE: claims reversing a list is the identity.
+prop_reverse_id :: [Int] -> Property
+prop_reverse_id xs = reverse xs === xs
+
+-- FALSE: claims every list is already sorted.
+prop_already_sorted :: [Int] -> Property
+prop_already_sorted xs = sort xs === xs
+
+-- FALSE: claims lists never contain duplicates.
+prop_no_duplicates :: [Int] -> Property
+prop_no_duplicates xs = nub xs === xs
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --  Test runner
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 main :: IO ()
 main = do
+  args <- getArgs
+  let verboseMode = any (`elem` args) ["-v", "--verbose"]
+      -- `verboseShrinking` prints every shrink attempt (pass *or* fail);
+      -- plain `quickCheck` only shows the final minimal counterexample.
+      runDemo p
+        | verboseMode = quickCheck (verboseShrinking (expectFailure p))
+        | otherwise   = quickCheck (expectFailure p)
+  putStrLn $ "-- shrinking demo (intentionally false properties)"
+          ++ (if verboseMode then " [VERBOSE]" else "")
+          ++ " --"
+  -- Pass --verbose (e.g. `stack test --ta -v`) to see every shrink step.
+  runDemo prop_reverse_id
+  runDemo prop_already_sorted
+  runDemo prop_no_duplicates
+  putStrLn "-- Expr properties (filled in during the QuickCheck lecture) --"
   quickCheck prop_pretty_parse_roundtrip
   quickCheck prop_parse_pretty_idempotent
   quickCheck prop_add_commutative
