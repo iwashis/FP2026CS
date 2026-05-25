@@ -37,15 +37,60 @@ QuickCheck's job is to **generate random `xs`** and check the law. When it finds
 
 Everything we will build today lives in `Test.QuickCheck`, but its core fits on a handful of slides — that is the whole point of the paper.
 
-## The plan
-1. The `Gen a` monad — random values of type `a`, parameterised by a *size*.
-2. The `Arbitrary` class — every type ships its own generator (and shrinker).
-3. The `Property` type — a generator of test outcomes.
-4. The `Testable` class — turns functions into properties.
-5. Conditional properties (`==>`), explicit generators (`forAll`), bookkeeping (`classify`, `collect`).
-6. **Shrinking** — what makes counter-examples readable.
-7. The check loop — how `quickCheck` actually runs.
-8. A worked example: the `Calculator` test scaffold.
+---
+
+# Warm-up: QuickCheck *in use* before we build it
+
+Three deliberately-false properties on `[Int]` — every one of them is *obviously* wrong, which is exactly the point: it lets us focus on **what QuickCheck does at runtime** before we look at how it is implemented.
+
+```haskell
+import Test.QuickCheck
+import Data.List (sort, nub)
+
+-- FALSE: claims reversing a list is the identity.
+prop_reverse_id      :: [Int] -> Property
+prop_reverse_id xs   = reverse xs === xs
+
+-- FALSE: claims lists never contain duplicates.
+prop_no_duplicates     :: [Int] -> Property
+prop_no_duplicates xs  = nub xs === xs
+```
+
+## What `quickCheck` does at runtime
+
+1. **Generate** a random `xs :: [Int]` (size-bounded, sampled from `arbitrary`).
+2. **Evaluate** the property.
+3. If it passes, draw a fresh `xs` and repeat — up to 100 times by default.
+4. If it **fails**, *do not stop*: try smaller `xs` from the shrinker, keep the smallest one that still falsifies, and *print that*.
+
+Each property above will end up at a tiny, human-readable counter-example. Crucially, none of these length-≤-1 candidates are counter-examples (`reverse [] = []`, `reverse [x] = [x]`), so we expect a *length-2* answer — and that is exactly what we get.
+
+---
+
+# Reading a QuickCheck run
+
+A typical session — the same three properties:
+
+```
+ghci> quickCheck prop_reverse_id
+*** Failed! Falsified (after 3 tests and 4 shrinks):
+[0,1]
+[1,0] /= [0,1]
+
+ghci> quickCheck prop_no_duplicates
+*** Failed! Falsified (after 7 tests and 9 shrinks):
+[0,0]
+[0] /= [0,0]
+```
+ 
+---
+
+Three things to notice immediately:
+- The counter-example for `prop_reverse_id` is **length 2** — any shorter list is *not* a counter-example, because for those `reverse xs == xs`.
+- `prop_no_duplicates` minimises both the *length* and the *element values* — `[0,0]` is the smallest failing list, not `[3,3]` or `[17,42,17]`.
+- "*after N tests and M shrinks*" — `N` random tests until one failed, `M` greedy shrink steps to whittle it down.
+
+The rest of the lecture answers a single question: **how does QuickCheck do all of this in ~200 lines of Haskell?**
 
 ---
 
@@ -76,7 +121,7 @@ instance Monad Gen where
     let (g1, g2) = split g
     in  unGen (k (h n g1)) n g2
 ```
-A generator is *just* a function from `(size, seed)` to a value. `split` is the critical detail: two sub-generators must get **independent** seeds, otherwise children of a tree would correlate.
+A generator is *just* a function from `(size, seed)` to a value. `split :: StdGen -> (StdGen,StdGen)` is the critical detail: two sub-generators must get **independent** seeds, otherwise children of a tree would correlate.
 
 ---
 
@@ -318,9 +363,17 @@ Read it like this:
 
 A bad shrinker is the difference between
 ```
-*** Failed!   Add (Mul (Lit 27) (Neg (Lit 3))) (Sub (Lit 9) (Lit (-12)))
+*** Failed!   [42,-7,3,15,0,-2,9,18]
 ```
 and
+```
+*** Failed!   [0,1]
+```
+— and the same insight applies, *unchanged*, to your own recursive types. The warm-up `prop_reverse_id` shrunk all the way down to `[0,1]` because lists' built-in shrinker peels off the head, peels off the tail, and shrinks each element towards `0`. For `Expr` we will have to write that shrinker ourselves; without it, a failing run produces
+```
+*** Failed!   Add (Mul (Lit 27) (Neg (Lit 3))) (Sub (Lit 9) (Lit (-12)))
+```
+instead of the legible
 ```
 *** Failed!   Add (Lit 0) (Lit 0)
 ```
@@ -409,43 +462,3 @@ prop_int_overflow a b =
     eval (Mul a b) === eval (Mul b a)
 ```
 
----
-
-# Three common pitfalls
-
-1. **The generator is too narrow.** Always run `collect` or `classify` on a fresh property to see the input distribution. A property that passes 100 times on the empty list has not been tested.
-
-2. **The shrinker is missing.** The default `shrink _ = []` produces unreadable counter-examples for recursive types — always write `shrink` for your own types.
-
-3. **Conditional properties starve.** `xs /= [] ==> head xs == ...` discards half the tests on empty lists. If the discard rate is high, **use `forAll` with a non-empty generator** instead of `==>`.
-
-These three rules cover ~90% of "my property passed but the bug is still there".
-
----
-
-# What modern libraries change
-
-The Claessen–Hughes paper is the entire core. Industrial libraries add:
-
-1. **State-machine testing** (`Test.QuickCheck.Monadic`, `quickcheck-state-machine`) — generate sequences of API calls, shrink **the sequence**, not just the values.
-2. **Integrated shrinking** (`hedgehog`) — generators and shrinkers share one Rose-tree representation, so you cannot accidentally have a clever generator and a useless shrinker.
-3. **Generic derivation** (`generic-random`, `QuickCheck-GenericArbitrary`) — derive size-aware `Arbitrary` from a `Generic` instance.
-4. **Coverage-guided generation** (`hedgehog`, `random-fu`) — track which code paths the random inputs hit and bias future tests towards uncovered branches.
-
-But the *core* — `Gen`, `Arbitrary`, `Property`, `Testable`, shrinking — is exactly what we built today.
-
----
-
-# Exercises
-
-1. Implement the missing properties in `Calculator/test/Spec.hs`.
-
-2. Write a size-aware `Arbitrary Expr` that **never** generates `Div _ (Lit 0)` directly — but still allows `Div` more generally. Hint: a smart constructor wrapped in `frequency`.
-
-3. Replace `==>` in `prop_div_left_inverse` with a `forAll` over a generator of *non-zero* expressions. Compare the discard rate before and after.
-
-4. Add a `classify` to `prop_pretty_parse_roundtrip` reporting whether the expression has depth `<= 3`, `<= 6`, or larger. Tune the generator until the buckets are roughly even.
-
-5. Re-implement `quickCheck` end-to-end on top of the `Gen` / `Property` definitions in these slides, **but with the shrinker turned off**, and observe how unreadable counter-examples get.
-
-6. (Hard.) Read `Test.QuickCheck.Monadic` and write a property that uses an `IORef` to test a small stateful container — e.g. a bounded queue.

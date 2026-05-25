@@ -28,8 +28,24 @@ import Test.QuickCheck
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 instance Arbitrary Expr where
-  arbitrary = undefined
-  shrink    = undefined
+   arbitrary = sized gen
+         where
+           gen 0 = Lit <$> fmap abs arbitrary
+           gen n = frequency
+             [ (1,  Lit <$> fmap abs arbitrary)
+             , (1, Neg <$> gen (n - 1))
+             , (2, bin Add), (2, bin Sub)
+             , (2, bin Mul), (2, bin Div) ]
+             where
+               half  = n `div` 2
+               bin c = c <$> gen half <*> gen half
+
+   shrink (Lit n)   = [ Lit n' | n' <- shrink n ]
+   shrink (Neg e)   = e : [ Neg e' | e' <- shrink e ]
+   shrink (Add a b) = [a, b] ++ [ Add a' b | a' <- shrink a ] ++ [ Add a b' | b' <- shrink b ]
+   shrink (Sub a b) = [a, b] ++ [ Sub a' b | a' <- shrink a ] ++ [ Sub a b' | b' <- shrink b ]
+   shrink (Div a b) = [a, b] ++ [ Div a' b | a' <- shrink a ] ++ [ Div a b' | b' <- shrink b ]
+   shrink (Mul a b) = [a, b] ++ [ Mul a' b | a' <- shrink a ] ++ [ Mul a b' | b' <- shrink b ]
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,7 +54,7 @@ instance Arbitrary Expr where
 
 -- For every expression e:  parseExpr (pretty e) == Just e
 prop_pretty_parse_roundtrip :: Expr -> Property
-prop_pretty_parse_roundtrip = undefined
+prop_pretty_parse_roundtrip e =  parseExpr (pretty e) === Just e 
 
 -- For every well-formed input s that parses to e:
 --   pretty (fromJust (parseExpr s))  parses back to the same e
@@ -120,34 +136,37 @@ prop_no_duplicates :: [Int] -> Property
 prop_no_duplicates xs = nub xs === xs
 
 
--- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --  Test runner
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 main :: IO ()
 main = do
-  args <- getArgs
-  let verboseMode = any (`elem` args) ["-v", "--verbose"]
-      -- `verboseShrinking` prints every shrink attempt (pass *or* fail);
-      -- plain `quickCheck` only shows the final minimal counterexample.
-      runDemo p
-        | verboseMode = quickCheck (verboseShrinking (expectFailure p))
-        | otherwise   = quickCheck (expectFailure p)
-  putStrLn $ "-- shrinking demo (intentionally false properties)"
-          ++ (if verboseMode then " [VERBOSE]" else "")
-          ++ " --"
-  -- Pass --verbose (e.g. `stack test --ta -v`) to see every shrink step.
-  runDemo prop_reverse_id
-  runDemo prop_already_sorted
-  runDemo prop_no_duplicates
-  putStrLn "-- Expr properties (filled in during the QuickCheck lecture) --"
+  print $ pretty $ Lit (-1)
+  print $ parseExpr "(-1)"
   quickCheck prop_pretty_parse_roundtrip
-  quickCheck prop_parse_pretty_idempotent
-  quickCheck prop_add_commutative
-  quickCheck prop_add_associative
-  quickCheck prop_mul_commutative
-  quickCheck prop_add_zero_identity
-  quickCheck prop_mul_one_identity
-  quickCheck prop_neg_involutive
-  quickCheck prop_sub_is_add_neg
-  quickCheck prop_calc_matches_pipeline
+  -- args <- getArgs
+  -- let verboseMode = any (`elem` args) ["-v", "--verbose"]
+  --     -- `verboseShrinking` prints every shrink attempt (pass *or* fail);
+  --     -- plain `quickCheck` only shows the final minimal counterexample.
+  --     runDemo p
+  --       | verboseMode = quickCheck (verboseShrinking (expectFailure p))
+  --       | otherwise   = quickCheck (expectFailure p)
+  -- putStrLn $ "-- shrinking demo (intentionally false properties)"
+  --         ++ (if verboseMode then " [VERBOSE]" else "")
+  --         ++ " --"
+  -- -- Pass --verbose (e.g. `stack test --ta -v`) to see every shrink step.
+  -- runDemo prop_reverse_id
+  -- runDemo prop_already_sorted
+  -- runDemo prop_no_duplicates
+  -- putStrLn "-- Expr properties (filled in during the QuickCheck lecture) --"
+  -- quickCheck prop_pretty_parse_roundtrip
+  -- quickCheck prop_parse_pretty_idempotent
+  -- quickCheck prop_add_commutative
+  -- quickCheck prop_add_associative
+  -- quickCheck prop_mul_commutative
+  -- quickCheck prop_add_zero_identity
+  -- quickCheck prop_mul_one_identity
+  -- quickCheck prop_neg_involutive
+  -- quickCheck prop_sub_is_add_neg
+  -- quickCheck prop_calc_matches_pipeline
