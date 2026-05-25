@@ -19,8 +19,24 @@ module Main (main) where
 
 import Calculator (Expr (..), calc, eval, parseExpr, pretty)
 import Data.List (sort, nub)
+import Numeric.Natural (Natural)
 import System.Environment (getArgs)
 import Test.QuickCheck
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--  Arbitrary Natural
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- This QuickCheck version ships no `Arbitrary Natural`, so we supply one
+-- (the `-Wno-orphans` pragma at the top permits the orphan instance).
+-- It is exactly QuickCheck's own definition for the other unsigned
+-- integral types, e.g. `Word`: `arbitrarySizedNatural` generates a
+-- non-negative value scaled to the test size, and `shrinkIntegral`
+-- shrinks towards 0 without ever underflowing below zero.
+
+instance Arbitrary Natural where
+  arbitrary = arbitrarySizedNatural
+  shrink    = shrinkIntegral
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,11 +44,14 @@ import Test.QuickCheck
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 instance Arbitrary Expr where
+   -- `Lit` now holds a `Natural`, so its `arbitrary` is non-negative by
+   -- construction — no `abs` needed. Negative values are reachable only
+   -- through `Neg`, exactly as the parser produces them.
    arbitrary = sized gen
          where
-           gen 0 = Lit <$> fmap abs arbitrary
+           gen 0 = Lit <$> arbitrary
            gen n = frequency
-             [ (1,  Lit <$> fmap abs arbitrary)
+             [ (1,  Lit <$> arbitrary)
              , (1, Neg <$> gen (n - 1))
              , (2, bin Add), (2, bin Sub)
              , (2, bin Mul), (2, bin Div) ]
@@ -54,86 +73,91 @@ instance Arbitrary Expr where
 
 -- For every expression e:  parseExpr (pretty e) == Just e
 prop_pretty_parse_roundtrip :: Expr -> Property
-prop_pretty_parse_roundtrip e =  parseExpr (pretty e) === Just e 
+prop_pretty_parse_roundtrip e = parseExpr (pretty e) === Just e
 
--- For every well-formed input s that parses to e:
---   pretty (fromJust (parseExpr s))  parses back to the same e
+-- `pretty` is a canonical form: pretty-printing, parsing, then
+-- pretty-printing again yields the very same string.
+--   pretty . fromJust . parseExpr . pretty  ==  pretty
 prop_parse_pretty_idempotent :: Expr -> Property
-prop_parse_pretty_idempotent = undefined
+prop_parse_pretty_idempotent e =
+  fmap pretty (parseExpr (pretty e)) === Just (pretty e)
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --  Evaluator laws
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+-- Two expressions are "equal" when they evaluate to the same result.
+-- Comparing the whole `Maybe Int` (rather than guarding with `==>`) is
+-- the point: a division-by-zero on one side must also appear on the
+-- other, so `Nothing === Nothing` is a genuine pass. `classify` reports
+-- how often the law is exercised on a *defined* value versus a vacuous
+-- `Nothing === Nothing`. These identities survive `Int` wraparound
+-- because two's-complement arithmetic is a commutative ring.
+sameEval :: Expr -> Expr -> Property
+sameEval lhs rhs =
+  classify (eval lhs == Nothing) "undefined (division by zero)" $
+    eval lhs === eval rhs
+
 -- eval (Add a b) == eval (Add b a)
 prop_add_commutative :: Expr -> Expr -> Property
-prop_add_commutative = undefined
+prop_add_commutative a b = sameEval (Add a b) (Add b a)
 
 -- eval (Add (Add a b) c) == eval (Add a (Add b c))
 prop_add_associative :: Expr -> Expr -> Expr -> Property
-prop_add_associative = undefined
+prop_add_associative a b c = sameEval (Add (Add a b) c) (Add a (Add b c))
 
 -- eval (Mul a b) == eval (Mul b a)
 prop_mul_commutative :: Expr -> Expr -> Property
-prop_mul_commutative = undefined
+prop_mul_commutative a b = sameEval (Mul a b) (Mul b a)
 
 -- eval (Add e (Lit 0)) == eval e
 prop_add_zero_identity :: Expr -> Property
-prop_add_zero_identity = undefined
+prop_add_zero_identity e = sameEval (Add e (Lit 0)) e
 
 -- eval (Mul e (Lit 1)) == eval e
 prop_mul_one_identity :: Expr -> Property
-prop_mul_one_identity = undefined
+prop_mul_one_identity e = sameEval (Mul e (Lit 1)) e
 
 -- eval (Neg (Neg e)) == eval e
 prop_neg_involutive :: Expr -> Property
-prop_neg_involutive = undefined
+prop_neg_involutive e = sameEval (Neg (Neg e)) e
 
 -- eval (Sub a b) == eval (Add a (Neg b))
 prop_sub_is_add_neg :: Expr -> Expr -> Property
-prop_sub_is_add_neg = undefined
+prop_sub_is_add_neg a b = sameEval (Sub a b) (Add a (Neg b))
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --  End-to-end: calc agrees with parseExpr + eval
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+-- Pretty-print, then run the whole one-shot pipeline: it must agree
+-- with evaluating the original expression directly. (Ties `calc`,
+-- `parseExpr`, `pretty` and `eval` together via the round trip.)
 prop_calc_matches_pipeline :: Expr -> Property
-prop_calc_matches_pipeline = undefined
+prop_calc_matches_pipeline e = calc (pretty e) === eval e
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
---  Shrinking demo on [Int]
+--  A law with a precondition  (the `==>` combinator)
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --
--- Lists already have a perfectly good `Arbitrary` / `shrink` instance
--- in QuickCheck, so they make an ideal stage on which to *watch*
--- shrinking work. All three properties below are deliberately FALSE.
--- When you run them you should see QuickCheck:
+-- `eval (Div a a) == Just 1`, but ONLY when `a` evaluates to a defined,
+-- non-zero number. Contrast this with the laws above: there a `Nothing`
+-- appeared identically on both sides, so no guard was needed. Here the
+-- excluded cases would make the law genuinely false or vacuous:
 --
---   1. find a random counterexample of some non-trivial size,
---   2. then shrink it down to the smallest list (and smallest element
---      values) that still falsifies the property.
+--   * `eval a == Nothing`  -> Div is Nothing, not Just 1
+--   * `eval a == Just 0`   -> 0 / 0 is division by zero -> Nothing
 --
--- Expected minimal counterexamples (your run may pick the symmetric
--- variant, e.g. [1,0] vs [0,1] — both are length-2 minima):
---
---   prop_reverse_id        -> [0, 1]
---   prop_already_sorted    -> [1, 0]
---   prop_no_duplicates     -> [0, 0]
-
--- FALSE: claims reversing a list is the identity.
-prop_reverse_id :: [Int] -> Property
-prop_reverse_id xs = reverse xs === xs
-
--- FALSE: claims every list is already sorted.
-prop_already_sorted :: [Int] -> Property
-prop_already_sorted xs = sort xs === xs
-
--- FALSE: claims lists never contain duplicates.
-prop_no_duplicates :: [Int] -> Property
-prop_no_duplicates xs = nub xs === xs
+-- `==>` discards any input failing the precondition; QuickCheck keeps
+-- generating until 100 *satisfy* it, and reports how many it threw away.
+-- (Beware: too strict a precondition and QuickCheck gives up.)
+prop_div_self :: Expr -> Property
+prop_div_self a =
+  eval a `notElem` [Nothing, Just 0] ==>
+    eval (Div a a) === Just 1
 
 
 -- ~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,31 +166,14 @@ prop_no_duplicates xs = nub xs === xs
 
 main :: IO ()
 main = do
-  print $ pretty $ Lit (-1)
-  print $ parseExpr "(-1)"
   quickCheck prop_pretty_parse_roundtrip
-  -- args <- getArgs
-  -- let verboseMode = any (`elem` args) ["-v", "--verbose"]
-  --     -- `verboseShrinking` prints every shrink attempt (pass *or* fail);
-  --     -- plain `quickCheck` only shows the final minimal counterexample.
-  --     runDemo p
-  --       | verboseMode = quickCheck (verboseShrinking (expectFailure p))
-  --       | otherwise   = quickCheck (expectFailure p)
-  -- putStrLn $ "-- shrinking demo (intentionally false properties)"
-  --         ++ (if verboseMode then " [VERBOSE]" else "")
-  --         ++ " --"
-  -- -- Pass --verbose (e.g. `stack test --ta -v`) to see every shrink step.
-  -- runDemo prop_reverse_id
-  -- runDemo prop_already_sorted
-  -- runDemo prop_no_duplicates
-  -- putStrLn "-- Expr properties (filled in during the QuickCheck lecture) --"
-  -- quickCheck prop_pretty_parse_roundtrip
-  -- quickCheck prop_parse_pretty_idempotent
-  -- quickCheck prop_add_commutative
-  -- quickCheck prop_add_associative
-  -- quickCheck prop_mul_commutative
-  -- quickCheck prop_add_zero_identity
-  -- quickCheck prop_mul_one_identity
-  -- quickCheck prop_neg_involutive
-  -- quickCheck prop_sub_is_add_neg
-  -- quickCheck prop_calc_matches_pipeline
+  quickCheck prop_parse_pretty_idempotent
+  quickCheck prop_add_commutative
+  quickCheck prop_add_associative
+  quickCheck prop_mul_commutative
+  quickCheck prop_add_zero_identity
+  quickCheck prop_mul_one_identity
+  quickCheck prop_neg_involutive
+  quickCheck prop_sub_is_add_neg
+  quickCheck prop_calc_matches_pipeline
+  quickCheck prop_div_self

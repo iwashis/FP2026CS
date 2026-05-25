@@ -17,6 +17,7 @@ module Calculator
 
 import Control.Monad.State
 import Data.Char (isDigit, isSpace)
+import Numeric.Natural (Natural)
 
 --
 -- ==========================================
@@ -35,8 +36,11 @@ import Data.Char (isDigit, isSpace)
 -- 1. The AST
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+-- A literal is a *natural* number: the grammar's @nat@ rule never
+-- produces a sign, and negation is represented explicitly by 'Neg'.
+-- Using 'Natural' makes that invariant impossible to violate.
 data Expr
-  = Lit Int
+  = Lit Natural
   | Neg Expr
   | Add Expr Expr
   | Sub Expr Expr
@@ -130,7 +134,7 @@ token p = do
 symbol :: String -> Parser String
 symbol cs = token (string cs)
 
-nat :: Parser Int
+nat :: Parser Natural
 nat = do
   ds <- many1 digit
   pure (read ds)
@@ -199,7 +203,7 @@ parseExpr s =
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 eval :: Expr -> Maybe Int
-eval (Lit n)   = Just n
+eval (Lit n)   = Just (fromIntegral n)
 eval (Neg e)   = negate <$> eval e
 eval (Add a b) = (+) <$> eval a <*> eval b
 eval (Sub a b) = (-) <$> eval a <*> eval b
@@ -215,9 +219,7 @@ eval (Div a b) = do
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 pretty :: Expr -> String
-pretty (Lit n)
-  | n < 0     = "(" ++ show n ++ ")"
-  | otherwise = show n
+pretty (Lit n)   = show n
 pretty (Neg e)   = "(-" ++ pretty e ++ ")"
 pretty (Add a b) = "(" ++ pretty a ++ " + " ++ pretty b ++ ")"
 pretty (Sub a b) = "(" ++ pretty a ++ " - " ++ pretty b ++ ")"
