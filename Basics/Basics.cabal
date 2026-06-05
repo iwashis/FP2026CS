@@ -32,6 +32,7 @@ library
       Lecture05
       Lecture06
       Lecture07
+      Lecture08
       Lib
       Tutorials01
       Tutorials02
@@ -46,9 +47,12 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      async
+    , base >=4.7 && <5
     , containers
     , mtl >=2.3.1
+    , random
+    , stm
     , transformers >=0.6.1.0
   default-language: Haskell2010
 
@@ -63,9 +67,12 @@ executable Basics-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Basics
+    , async
     , base >=4.7 && <5
     , containers
     , mtl >=2.3.1
+    , random
+    , stm
     , transformers >=0.6.1.0
   default-language: Haskell2010
 
@@ -81,8 +88,11 @@ test-suite Basics-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Basics
+    , async
     , base >=4.7 && <5
     , containers
     , mtl >=2.3.1
+    , random
+    , stm
     , transformers >=0.6.1.0
   default-language: Haskell2010

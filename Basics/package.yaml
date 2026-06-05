@@ -24,6 +24,9 @@ dependencies:
 - containers
 - mtl >= 2.3.1
 - transformers >= 0.6.1.0
+- stm
+- async
+- random
 
 ghc-options:
 - -Wall

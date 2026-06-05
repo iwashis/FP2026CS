@@ -2,6 +2,7 @@ module Main (main) where
 
 import qualified Lecture01
 import qualified Lecture02
+import qualified Lecture08
 import qualified Tutorials01
 import qualified Tutorials02
 import qualified Tutorials03
@@ -22,3 +23,5 @@ main = do
   Tutorials04.main
   putStrLn ""
   Tutorials05.main
+  putStrLn ""
+  Lecture08.main
