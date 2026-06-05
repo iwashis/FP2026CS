@@ -318,3 +318,33 @@ calc s = case runParser (do { spaces; n <- expr; return n }) s of
 --     with
 --       data JSON = JNum Double | JStr String | JBool Bool | JNull
 --                 | JArr [JSON] | JObj [(String, JSON)]
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- A runnable tour of the examples above
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+main :: IO ()
+main = do
+  putStrLn "=== Lecture 07: Monadic Parsing ==="
+
+  putStrLn "\n-- item / twoChars --"
+  print (runParser item "abc")
+  print (runParser twoChars "abc")
+
+  putStrLn "\n-- string --"
+  print (runParser (string "let") "let x = 1")
+  print (runParser (string "let") "lemon")
+
+  putStrLn "\n-- nat / int --"
+  print (runParser nat "123abc")
+  print (runParser int "-42 rest")
+
+  putStrLn "\n-- intList --"
+  print (runParser intList "[1, 2, 3]xx")
+
+  putStrLn "\n-- calculator --"
+  print (calc "1 + 2 * 3")
+  print (calc "(1 + 2) * 3")
+  print (calc "100 - 10 - 1")
+  print (calc "2 + 3 * (4 - 1) / 3")

@@ -33,7 +33,7 @@
 --
 -- The @-threaded -with-rtsopts=-N@ options (see package.yaml) tell the runtime
 -- to actually use every CPU core, so the concurrent acts run in /parallel/.
-module Lecture08 (main) where
+module Advanced.STM (main) where
 
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.Async
@@ -164,7 +164,7 @@ main = do
   act4_orElseChoice
   act5_parallelStressTest
   act6_mvarDeadlock
-  putStrLn "\nDone. Re-read Lecture08.hs alongside the output."
+  putStrLn "\nDone. Re-read STM.hs alongside the output."
 
 -- Small helper to print act headers consistently.
 banner :: String -> IO ()

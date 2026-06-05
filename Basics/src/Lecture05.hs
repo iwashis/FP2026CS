@@ -311,3 +311,39 @@ stackOps = do
 --
 -- ghci> runState' stackOps []
 -- (2, [1])
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- A runnable tour of the examples above
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+main :: IO ()
+main = do
+  putStrLn "=== Lecture 05: The List Monad & State Monad ==="
+
+  putStrLn "\n-- List monad: triple --"
+  print (["Bunny"] >>= triple)
+  print (["Bunny"] >>= triple >>= triple)
+
+  putStrLn "\n-- Pythagorean triples --"
+  print pythTriples
+
+  putStrLn "\n-- Fibonacci via list comprehension --"
+  print (take 10 fibComp)
+
+  putStrLn "\n-- Manual counter threading --"
+  print (twoNamesManual 0)
+
+  putStrLn "\n-- State monad: two fresh names (no manual threading) --"
+  print (runState' twoNames 0)
+
+  putStrLn "\n-- fmap over stateful computations --"
+  print (runState' freshNameUpper 0)
+  print (runState' freshLabel 7)
+  print (runState' freshNameLen 100)
+
+  putStrLn "\n-- tick three times --"
+  print (runState' (do { _ <- tick; _ <- tick; tick }) 0)
+
+  putStrLn "\n-- Stack operations --"
+  print (runState' stackOps [])

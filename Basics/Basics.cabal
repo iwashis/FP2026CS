@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Advanced.STM
       Lecture01
       Lecture02
       Lecture03
@@ -32,7 +33,6 @@ library
       Lecture05
       Lecture06
       Lecture07
-      Lecture08
       Lib
       Tutorials01
       Tutorials02

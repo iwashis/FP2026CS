@@ -194,3 +194,37 @@ example = step >> step >> step
 
 runExample :: (((), Double), Int)
 runExample = runIdentity (runStateT' (runStateT' example 0.0) 0)
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- A runnable tour of the examples above
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- `greet` above reads stdin, so it is not run here. These two MaybeT' IO
+-- demos do I/O without prompting, so they are safe in a batch run.
+
+succeeds :: MaybeIO String
+succeeds = do
+  lift' (putStrLn "  (two lifted IO steps ran)")
+  return "done"
+
+shortCircuits :: MaybeIO String
+shortCircuits = do
+  _ <- (MaybeT' (return Nothing) :: MaybeIO ())   -- fail here
+  lift' (putStrLn "  (this line is never reached)")
+  return "unreachable"
+
+main :: IO ()
+main = do
+  putStrLn "=== Lecture 06: Monad Transformers ==="
+
+  putStrLn "\n-- MaybeT' IO: success --"
+  r1 <- runMaybeT' succeeds
+  print r1
+
+  putStrLn "\n-- MaybeT' IO: short-circuit on Nothing --"
+  r2 <- runMaybeT' shortCircuits
+  print r2
+
+  putStrLn "\n-- StateT' stacking: Int (inner) + Double (outer) counters --"
+  print runExample

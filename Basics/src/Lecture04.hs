@@ -349,3 +349,39 @@ lookupVeryNice i = do
 
 
 --   ...
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- A runnable tour of the examples above
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+main :: IO ()
+main = do
+  putStrLn "=== Lecture 04: Applicative Functors & Monads ==="
+
+  putStrLn "\n-- Predicate (contravariant: a Functor cannot be written) --"
+  let Predicate p = isEven
+  print (p 4)
+  print (p 5)
+
+  putStrLn "\n-- Maybe' as Applicative --"
+  print (Just' (+ 3) <*> Just' (5 :: Int))
+  print (Just' (*) <*> Just' 5 <*> Just' (3 :: Int))
+  print (Nothing' <*> Just' (5 :: Int) :: Maybe' Int)
+
+  putStrLn "\n-- liftA2 to build a User --"
+  print (maybeCreate' (Just' "Jan") (Just' 30))
+  print (maybeCreate' Nothing' (Just' 30))
+
+  putStrLn "\n-- List Applicative: all combinations --"
+  print allCombinations
+
+  putStrLn "\n-- Maybe monad: safeDiv chaining --"
+  print (safeDiv 100 10 >>= safeDiv 5)
+  print (safeDiv 100 0 >>= safeDiv 5)
+
+  putStrLn "\n-- Dictionary lookup chains --"
+  print (lookupEmail 1)
+  print (lookupEmail 2)
+  print (lookupVeryNice 1)
+  print (lookupEmailDo 1)
