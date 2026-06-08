@@ -120,6 +120,7 @@ closeDoor (Door name) = Door name
 doorName :: Door state -> String
 doorName (Door name) = name
 
+
 -- `openDoor (newDoor "front")`            -- ok: Closed -> Open
 -- `closeDoor (openDoor (newDoor "front"))`-- ok: Closed -> Open -> Closed
 --
