@@ -311,3 +311,5 @@ The cost is real: richer types make **type inference weaker** (you write more si
 2. Give the `Door` a `lock`/`unlock` pair and a third state `Locked`, so that a `Locked` door must be unlocked before it can be opened. Write the transition types.
 
 3. Define `vappend :: Vec m a -> Vec n a -> Vec ??? a`. What is the length of the result, and what type-level operation do you need to express it?
+
+*Worked solutions are in the "Solutions to the exercises" section at the bottom of `Basics/src/Advanced/TypeSystems.hs`.*

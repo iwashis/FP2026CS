@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- | Lecture 10: Beyond algebraic data types — extending Haskell's type system.
 --
@@ -31,18 +32,23 @@
 --
 -- Read the four sections top to bottom: each one is a strictly stronger answer
 -- to the same question — /how much nonsense can the compiler reject for us?/
+-- The final section, "Solutions to the exercises", works the three exercises
+-- from the slides, reusing the definitions built up above.
 --
 -- __Language pragmas.__ Standard Haskell (the @Haskell2010@ this package
 -- compiles with) is enough for ADTs and phantom types — they need /no/
--- extension. The other two are off by default and must be switched on with a
--- @{-\# LANGUAGE ... \#-}@ pragma at the top of the file (see the three lines
+-- extension. The others are off by default and must be switched on with a
+-- @{-\# LANGUAGE ... \#-}@ pragma at the top of the file (see the four lines
 -- above), or via @default-extensions@ in the @.cabal@ \/ @package.yaml@:
 --
---   * @GADTs@         — the @data T a where ...@ syntax (section 2 and 3).
+--   * @GADTs@         — the @data T a where ...@ syntax (sections 2, 3 and the
+--                       exercise solutions).
 --   * @DataKinds@     — promote @data Nat = Z | S Nat@ to a /kind/, so @'Z@
 --                       and @'S@ can be used in types (section 3).
 --   * @KindSignatures@— the @(n :: Nat)@ annotation on a type variable
 --                       (section 3).
+--   * @TypeFamilies@  — addition on type-level naturals, needed for @vappend@
+--                       in the exercise solutions.
 module Advanced.TypeSystems (main) where
 
 
@@ -215,6 +221,38 @@ predicate = And (IsEq (IntLit 4) (Mul (IntLit 2) (IntLit 2)))
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- 2a. A caveat: what the GADT index does NOT fix
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- It is tempting to conclude that the honest index makes evaluation total in
+-- every sense. It does not. The index rules out /type/ errors ("1 + True"),
+-- but it says nothing about /values/. Add a division constructor and the
+-- problem is plain: the index `Int` cannot express "non-zero", so division by
+-- zero is still a runtime crash.
+
+data E1 a where
+  Lit1 :: Int -> E1 Int
+  Add1 :: E1 Int -> E1 Int -> E1 Int
+  Div1 :: E1 Int -> E1 Int -> E1 Int
+
+eval1 :: E1 a -> a
+eval1 (Lit1 n)   = n
+eval1 (Add1 a b) = eval1 a + eval1 b
+eval1 (Div1 a b) = eval1 a `div` eval1 b      -- crashes when (eval1 b == 0)
+
+-- To recover totality we must reintroduce `Maybe` — note the type index gave
+-- us no help with this particular failure. The lesson: GADTs move /type/
+-- errors to compile time, but value-level partiality needs other tools.
+eval1safe :: E1 a -> Maybe a
+eval1safe (Lit1 n)   = Just n
+eval1safe (Add1 a b) = (+) <$> eval1safe a <*> eval1safe b
+eval1safe (Div1 a b) = do
+  x <- eval1safe a
+  y <- eval1safe b
+  if y == 0 then Nothing else Just (x `div` y)
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- 2b. Two more GADTs (still just the GADTs pragma)
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --
@@ -291,6 +329,16 @@ vzipWith :: (a -> b -> c) -> Vec n a -> Vec n b -> Vec n c
 vzipWith _ VNil         VNil         = VNil
 vzipWith f (VCons x xs) (VCons y ys) = VCons (f x y) (vzipWith f xs ys)
 
+-- `vmap` returns `Vec n b` for the SAME `n`: it is "obviously" length-
+-- preserving because each VCons in the input becomes exactly one VCons in the
+-- output, and VNil maps to VNil. GHC sees it for the same reason — the
+-- recursive call returns `Vec n' b` for the tail's length `n'`, and
+-- `VCons _ :: ... -> Vec ('S n') b` rebuilds the same `'S n'` the input had.
+
+vmap :: (a -> b) -> Vec n a -> Vec n b
+vmap _ VNil         = VNil
+vmap f (VCons x xs) = VCons (f x) (vmap f xs)
+
 -- A way back to an ordinary list, so we can print results.
 toList :: Vec n a -> [a]
 toList VNil         = []
@@ -303,6 +351,90 @@ vec1 = VCons 1 (VCons 2 (VCons 3 VNil))
 
 vec2 :: Vec ('S ('S ('S 'Z))) Int
 vec2 = VCons 10 (VCons 20 (VCons 30 VNil))
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- Solutions to the exercises
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- The three exercises from the slides, worked out using the machinery above.
+-- They are independent of the runnable tour and serve as a reference.
+
+
+-- Exercise 1: variables and a typed environment
+-- ---------------------------------------------
+-- A plain `[(String, ???)]` environment cannot work: different variables have
+-- different types, so the values can't share one element type. The fix is a
+-- /typed de Bruijn index/ — a pointer into the environment that carries, in
+-- its own type, the type of the thing it points at.
+--
+-- The environment is a nested tuple of values; `Idx env a` is a typed pointer
+-- into it, and `lookupVar :: Idx env a -> env -> a` lets the index determine
+-- the result type `a`. (We call the expression type `TExpr` here so it does
+-- not clash with the `Expr` from section 2.)
+
+data Idx env a where
+  Zero :: Idx (a, env) a               -- points at the head
+  Succ :: Idx env a -> Idx (b, env) a  -- skip the head, look deeper
+
+data TExpr env a where
+  Lit  :: Int -> TExpr env Int
+  AddE :: TExpr env Int -> TExpr env Int -> TExpr env Int
+  Var  :: Idx env a -> TExpr env a
+
+lookupVar :: Idx env a -> env -> a
+lookupVar Zero     (x, _)  = x
+lookupVar (Succ i) (_, xs) = lookupVar i xs
+
+evalE :: env -> TExpr env a -> a
+evalE _   (Lit n)    = n
+evalE env (AddE a b) = evalE env a + evalE env b
+evalE env (Var i)    = lookupVar i env
+
+-- An environment holding an Int (position 0) and a Bool (position 1).
+-- `Var Zero` has type TExpr (Int,(Bool,())) Int; the Bool is reachable as
+-- `Var (Succ Zero)` and would have type ... Bool.
+exampleEnv :: (Int, (Bool, ()))
+exampleEnv = (7, (True, ()))
+
+-- evalE exampleEnv (AddE (Var Zero) (Lit 1))  ==>  8
+
+
+-- Exercise 2: a third door state, Locked
+-- --------------------------------------
+-- Reuse the `Door` from section 1; we only need a new tag and the two new
+-- transitions. A Locked door must be unlocked (to Closed) before it can be
+-- opened — the types make any other order a compile error.
+
+data Locked
+
+lockDoor :: Door Closed -> Door Locked
+lockDoor (Door n) = Door n
+
+unlockDoor :: Door Locked -> Door Closed
+unlockDoor (Door n) = Door n
+
+-- openDoor (lockDoor (newDoor "vault"))               -- TYPE ERROR (Locked, not Closed)
+-- openDoor (unlockDoor (lockDoor (newDoor "vault")))  -- ok
+
+
+-- Exercise 3: vappend — length is added at the type level
+-- -------------------------------------------------------
+-- Reuse the `Vec` from section 3. The result length is `m + n`. To express it
+-- we need a /type family/ that adds two type-level Nats (TypeFamilies pragma)
+-- — addition is a function on types, mirroring the value-level definition.
+
+type family Add (m :: Nat) (n :: Nat) :: Nat where
+  Add 'Z     n = n
+  Add ('S m) n = 'S (Add m n)
+
+vappend :: Vec m a -> Vec n a -> Vec (Add m n) a
+vappend VNil         ys = ys
+vappend (VCons x xs) ys = VCons x (vappend xs ys)
+
+-- A length-2 vector to append in front of the length-3 `vec1` above.
+vec2of :: Vec ('S ('S 'Z)) Int
+vec2of = VCons 4 (VCons 5 VNil)
 
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -332,6 +464,11 @@ main = do
   putStrLn (pretty predicate ++ "  ==>  " ++ show (eval predicate))
   putStrLn "(Add (IntLit 1) (BoolLit True) would not compile — wrong index)"
 
+  putStrLn "\n-- 2a. The index fixes type errors, not value-level partiality --"
+  print (eval1 (Div1 (Lit1 10) (Lit1 2)))           -- 5
+  print (eval1safe (Div1 (Lit1 10) (Lit1 0)))       -- Nothing: div-by-zero
+  print (eval1safe (Add1 (Lit1 3) (Lit1 4)))        -- Just 7
+
   putStrLn "\n-- 2b. A runtime type witness (Ty a) --"
   putStrLn (render TInt  (defaultVal TInt))         -- int: 0
   putStrLn (render TBool (defaultVal TBool))        -- bool: False
@@ -343,4 +480,11 @@ main = do
   print (toList vec1)                               -- [1,2,3]
   print (vhead vec1)                                -- 1 (head is total)
   print (toList (vzipWith (+) vec1 vec2))           -- [11,22,33]
+  print (toList (vmap (* 10) vec1))                 -- [10,20,30]
   putStrLn "(vzipWith on different-length vectors would not compile)"
+
+  putStrLn "\n-- Solutions to the exercises --"
+  print (evalE exampleEnv (AddE (Var Zero) (Lit 1)))         -- Ex 1: 8
+  putStrLn (doorName (openDoor (unlockDoor (lockDoor (newDoor "vault")))))
+                                                            -- Ex 2: "vault"
+  print (toList (vappend vec2of vec1))                       -- Ex 3: [4,5,1,2,3]
