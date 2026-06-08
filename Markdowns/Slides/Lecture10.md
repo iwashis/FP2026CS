@@ -67,21 +67,16 @@ evalU (UAdd a b) = case (evalU a, evalU b) of
 -- ...
 ```
 
-The types do not stop us building nonsense; we pay at runtime with `Maybe`.
-
 ---
 
 # Two questions, two extensions
 
-We will push that check back to **compile time** in two steps, plus a capstone:
+We will push that check back to **compile time** in three steps:
 
 - **Phantom types** — a type parameter used only in *types* → forbid illegal API *calls*.
 - **GADTs** — constructors *refine* the result type → a total, type-safe interpreter.
-- *DataKinds* (capstone) — promote data to the *type* level → types that *count*.
+- *DataKinds*  — promote data to the *type* level → types that *count*.
 
-Each is a strictly stronger answer to the same question:
-
-> *How much nonsense can the compiler reject for us?*
 
 ---
 
@@ -188,21 +183,6 @@ Add (IntLit 1) (BoolLit True)
 
 ---
 
-# Why does `eval` type-check?
-
-The magic is in the **pattern match**. When we match `Add a b`, GHC reads off the GADT that this constructor returns `Expr Int`, and therefore in *this branch*:
-
-```haskell
-eval (Add a b) = eval a + eval b
---      ^^^ here GHC LEARNS  a ~ Int
---   so  eval a, eval b :: Int, and the branch has type Int  ✓
-```
-
-Each branch **refines** the result type to match its constructor's declaration. Matching `BoolLit b` learns `a ~ Bool`; matching `IsEq` learns the result is `Bool`; and so on.
-
-This is precisely the power phantom types lacked: there, matching a value told us *nothing* about the type index. A GADT constructor **carries the evidence** that lets the type checker specialise each branch.
-
----
 
 # ADT vs GADT, side by side
 
@@ -248,38 +228,6 @@ render TBool b = "bool: " ++ show b
 ```
 
 This is the phantom idea *with the evidence put back in*: `Ty a` is a runtime token from which the type `a` can be read off.
-
----
-
-# More GADTs (2): type-safe `printf`
-
-A format descriptor whose **type computes the function's arity** — no `Typeable`, no varargs hack:
-
-```haskell
-data Fmt a where
-  FEnd :: Fmt String
-  FLit :: String -> Fmt a -> Fmt a
-  FInt :: Fmt a -> Fmt (Int -> a)        -- adds an Int argument
-  FStr :: Fmt a -> Fmt (String -> a)     -- adds a String argument
-
-printf :: Fmt a -> a
-printf fmt = go fmt ""
-  where
-    go :: Fmt a -> String -> a           -- polymorphic recursion: signature required
-    go FEnd       acc = acc
-    go (FLit s k) acc = go k (acc ++ s)
-    go (FInt k)   acc = \n -> go k (acc ++ show n)
-    go (FStr k)   acc = \s -> go k (acc ++ s)
-```
-
-The descriptor *is* the type. `greet` below is inferred as `String -> Int -> String`:
-
-```haskell
-greet = printf (FLit "Hello " (FStr (FLit ", you are " (FInt FEnd))))
--- greet "Ada" 36  ==>  "Hello Ada, you are 36"
-```
-
-Pass the wrong argument type — or too many — and it does not compile.
 
 ---
 
@@ -357,12 +305,9 @@ The cost is real: richer types make **type inference weaker** (you write more si
 
 # Exercises
 
-1. Add a `Div :: Expr Int -> Expr Int -> Expr Int` constructor. What goes wrong with totality, and how is it different from the `UExpr` case? (Hint: `eval` can still throw on division by zero — the type system has *not* made that go away.)
 
-2. Extend `Expr` with variables and a typed environment so that `eval` takes an environment. What is the type of a lookup that must return the *right* type for each variable?
+1. Extend `Expr` with variables and a typed environment so that `eval` takes an environment. What is the type of a lookup that must return the *right* type for each variable?
 
-3. Give the `Door` a `lock`/`unlock` pair and a third state `Locked`, so that a `Locked` door must be unlocked before it can be opened. Write the transition types.
+2. Give the `Door` a `lock`/`unlock` pair and a third state `Locked`, so that a `Locked` door must be unlocked before it can be opened. Write the transition types.
 
-4. Define `vappend :: Vec m a -> Vec n a -> Vec ??? a`. What is the length of the result, and what type-level operation do you need to express it?
-
-5. Write `vmap :: (a -> b) -> Vec n a -> Vec n b`. Why is its length index "obviously" preserved — and why can GHC see that?
+3. Define `vappend :: Vec m a -> Vec n a -> Vec ??? a`. What is the length of the result, and what type-level operation do you need to express it?
