@@ -1,6 +1,7 @@
 module Main (main) where
 
 import qualified Advanced.STM
+import qualified Advanced.TypeSystems
 import qualified Lecture01
 import qualified Lecture02
 import qualified Lecture03
@@ -40,3 +41,5 @@ main = do
   Tutorials05.main
   putStrLn ""
   Advanced.STM.main
+  putStrLn ""
+  Advanced.TypeSystems.main

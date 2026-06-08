@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Advanced.STM
+      Advanced.TypeSystems
+      Advanced.TypeSystemsSolutions
       Lecture01
       Lecture02
       Lecture03
